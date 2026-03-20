@@ -1,4 +1,4 @@
-import { Bell, Search, User, Menu } from "lucide-react";
+import { Bell, Search, User, LogOut, Settings, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -12,14 +12,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "@/hooks/use-toast";
 
 export function TopNavbar() {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const navigate = useNavigate();
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
+
+  const handleLogout = () => {
+    toast({ title: "Logged out", description: "You have been logged out successfully." });
+    navigate("/login");
+  };
 
   return (
     <header className="h-14 border-b bg-card/80 backdrop-blur-md flex items-center px-4 gap-3 sticky top-0 z-10">
@@ -37,15 +45,8 @@ export function TopNavbar() {
 
       <div className="flex items-center gap-2 ml-auto">
         <span className="text-xs text-muted-foreground hidden md:block font-sans">
-          {currentTime.toLocaleDateString("en-IN", {
-            weekday: "short",
-            day: "numeric",
-            month: "short",
-          })}{" "}
-          {currentTime.toLocaleTimeString("en-IN", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+          {currentTime.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}{" "}
+          {currentTime.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
         </span>
 
         <DropdownMenu>
@@ -95,10 +96,16 @@ export function TopNavbar() {
               <p className="text-xs text-muted-foreground font-normal">admin@jewelskart.com</p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
+              <UserCircle className="h-4 w-4 mr-2" />Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
+              <Settings className="h-4 w-4 mr-2" />Settings
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">Logout</DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" />Logout
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

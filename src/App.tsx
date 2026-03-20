@@ -14,6 +14,10 @@ import MarketingPage from "@/pages/MarketingPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import BrandsPage from "@/pages/BrandsPage";
 import SettingsPage from "@/pages/SettingsPage";
+import CategoriesPage from "@/pages/CategoriesPage";
+import RevenueDetailsPage from "@/pages/RevenueDetailsPage";
+import LoginPage from "@/pages/LoginPage";
+import SignupPage from "@/pages/SignupPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -25,6 +29,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
           <Route element={<DashboardLayout />}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/products" element={<ProductsPage />} />
@@ -36,6 +42,8 @@ const App = () => (
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/brands" element={<BrandsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/categories" element={<CategoriesPage />} />
+            <Route path="/revenue-details" element={<RevenueDetailsPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

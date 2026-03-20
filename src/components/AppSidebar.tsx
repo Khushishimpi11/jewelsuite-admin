@@ -8,8 +8,8 @@ import {
   Tag,
   CreditCard,
   Megaphone,
-  Gem,
   Warehouse,
+  FolderTree,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -26,6 +26,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import logo from "@/assets/logo.png";
 
 const mainNav = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -33,6 +34,7 @@ const mainNav = [
   { title: "Orders", url: "/orders", icon: ShoppingCart },
   { title: "Customers", url: "/customers", icon: Users },
   { title: "Inventory", url: "/inventory", icon: Warehouse },
+  { title: "Categories", url: "/categories", icon: FolderTree },
 ];
 
 const businessNav = [
@@ -85,7 +87,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
-          <Gem className="h-6 w-6 text-sidebar-primary shrink-0" />
+          <img src={logo} alt="JewelsKart" className="h-8 w-8 shrink-0 object-contain" />
           {!collapsed && (
             <span className="font-display text-lg font-bold text-sidebar-foreground tracking-wide">
               JEWELSKART
