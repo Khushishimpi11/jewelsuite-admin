@@ -1,30 +1,12 @@
 import {
-  LayoutDashboard,
-  Package,
-  ShoppingCart,
-  Users,
-  BarChart3,
-  Settings,
-  Tag,
-  CreditCard,
-  Megaphone,
-  Warehouse,
-  FolderTree,
+  LayoutDashboard, Package, ShoppingCart, Users, BarChart3, Settings, Tag,
+  CreditCard, Megaphone, Warehouse, FolderTree, Gem,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-  SidebarFooter,
-  useSidebar,
+  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 import logo from "@/assets/logo.png";
 
@@ -45,6 +27,7 @@ const businessNav = [
 ];
 
 const systemNav = [
+  { title: "Gold Rate", url: "/settings?tab=goldrate", icon: Gem },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
@@ -69,11 +52,11 @@ export function AppSidebar() {
                 <NavLink
                   to={item.url}
                   end={item.url === "/"}
-                  className="transition-all duration-200 hover:bg-sidebar-accent"
+                  className="transition-all duration-200 hover:bg-sidebar-accent py-2.5"
                   activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                 >
-                  <item.icon className="h-4 w-4 mr-2 shrink-0" />
-                  {!collapsed && <span>{item.title}</span>}
+                  <item.icon className="h-4 w-4 mr-2.5 shrink-0" />
+                  {!collapsed && <span className="text-sm">{item.title}</span>}
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -85,9 +68,9 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <img src={logo} alt="JewelsKart" className="h-8 w-8 shrink-0 object-contain" />
+      <SidebarHeader className="p-4 pb-2">
+        <div className="flex items-center gap-2.5">
+          <img src={logo} alt="JewelsKart" className="h-10 w-10 shrink-0 object-contain" />
           {!collapsed && (
             <span className="font-display text-lg font-bold text-sidebar-foreground tracking-wide">
               JEWELSKART
@@ -95,7 +78,7 @@ export function AppSidebar() {
           )}
         </div>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="px-1">
         {renderGroup("Main", mainNav)}
         {renderGroup("Business", businessNav)}
         {renderGroup("System", systemNav)}

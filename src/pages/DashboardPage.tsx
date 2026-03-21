@@ -4,14 +4,16 @@ import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { Badge } from "@/components/ui/badge";
 import {
   IndianRupee, ShoppingCart, Users, TrendingUp, Package,
-  ArrowUpRight, ArrowDownRight, Clock, AlertTriangle, Gem,
-  BarChart3, Warehouse, PackageMinus, FolderTree, Receipt,
+  ArrowUpRight, Clock, AlertTriangle, Gem, BarChart3,
+  Warehouse, PackageMinus, FolderTree, Receipt, Tag,
+  Plus, Truck, CheckCircle2, Activity,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell,
+  PieChart, Pie, Cell, BarChart, Bar,
 } from "recharts";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import logo from "@/assets/logo.png";
 
 const salesData = [
@@ -28,6 +30,14 @@ const categoryData = [
   { name: "Bracelets", value: 17, color: "hsl(330, 15%, 70%)" },
 ];
 
+const topProducts = [
+  { name: "Diamond Ring", sales: 52 },
+  { name: "Temple Necklace", sales: 38 },
+  { name: "Pearl Earrings", sales: 31 },
+  { name: "Gold Bracelet", sales: 24 },
+  { name: "Kundan Set", sales: 18 },
+];
+
 const recentOrders = [
   { id: "#JK-1234", customer: "Priya Sharma", amount: "₹45,200", status: "Delivered", time: "2h ago" },
   { id: "#JK-1235", customer: "Rahul Mehta", amount: "₹1,25,000", status: "Shipped", time: "4h ago" },
@@ -42,11 +52,35 @@ const insights = [
   { icon: AlertTriangle, text: "Sales dropped 12% in last 3 days vs prior week", type: "danger" as const },
 ];
 
+const recentActivity = [
+  { icon: Plus, text: "Diamond Solitaire Ring added to catalog", time: "10 min ago", color: "text-emerald-600" },
+  { icon: ShoppingCart, text: "New order #JK-1240 placed by Priya S.", time: "25 min ago", color: "text-primary" },
+  { icon: Truck, text: "Order #JK-1235 marked as Shipped", time: "1h ago", color: "text-blue-600" },
+  { icon: CheckCircle2, text: "Order #JK-1234 delivered successfully", time: "2h ago", color: "text-emerald-600" },
+  { icon: AlertTriangle, text: "Low stock alert: Gold Temple Necklace (3 left)", time: "3h ago", color: "text-amber-600" },
+];
+
 const statusColors: Record<string, string> = {
-  Delivered: "bg-emerald-100 text-emerald-700",
-  Shipped: "bg-blue-100 text-blue-700",
-  Processing: "bg-amber-100 text-amber-700",
+  Delivered: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  Shipped: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  Processing: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
   Pending: "bg-muted text-muted-foreground",
+};
+
+const brands = [
+  { name: "Tanishq", products: 24 },
+  { name: "Kalyan Jewellers", products: 18 },
+  { name: "Malabar Gold", products: 31 },
+  { name: "JewelsKart Original", products: 42 },
+];
+
+const container = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.05 } },
+};
+const item = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
 };
 
 export default function DashboardPage() {
@@ -56,94 +90,102 @@ export default function DashboardPage() {
     { label: "PRODUCTS", value: 11, sub: "11 items", icon: Package, to: "/products", color: "text-primary" },
     { label: "ORDERS", value: 15, sub: "1 pending", icon: ShoppingCart, to: "/orders", color: "text-primary" },
     { label: "OUT OF STOCK", value: 0, sub: "All stocked", icon: PackageMinus, to: "/inventory?filter=out", color: "text-emerald-600" },
-    { label: "LOW STOCK", value: 0, sub: "Healthy", icon: AlertTriangle, to: "/inventory?filter=low", color: "text-emerald-600" },
+    { label: "LOW STOCK", value: 0, sub: "Healthy", icon: AlertTriangle, to: "/inventory?filter=low", color: "text-amber-600" },
     { label: "CUSTOMERS", value: 4, sub: "Active users", icon: Users, to: "/customers", color: "text-primary" },
     { label: "CATEGORIES", value: 20, sub: "Active", icon: FolderTree, to: "/categories", color: "text-primary" },
   ];
 
   return (
-    <div className="space-y-6">
+    <motion.div className="space-y-8" variants={container} initial="hidden" animate="show">
       {/* Welcome Banner */}
-      <Card className="glass-card rounded-xl overflow-hidden relative">
-        <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <img src={logo} alt="JewelsKart" className="h-12 w-12 object-contain hidden sm:block" />
-            <div>
-              <p className="text-xs text-accent font-sans flex items-center gap-1"><Gem className="h-3 w-3" /> Welcome Back</p>
-              <h1 className="text-2xl font-display font-bold mt-1">JewelsKart</h1>
-              <p className="text-muted-foreground text-sm font-sans">Your premium jewellery destination</p>
+      <motion.div variants={item}>
+        <Card className="rounded-2xl overflow-hidden relative border-0 bg-gradient-to-r from-primary via-primary to-primary/80">
+          <CardContent className="p-6 md:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <img src={logo} alt="JewelsKart" className="h-14 w-14 object-contain hidden sm:block drop-shadow-lg" />
+              <div>
+                <p className="text-xs text-accent font-sans flex items-center gap-1 font-medium">
+                  <Gem className="h-3 w-3" /> Welcome Back, Admin
+                </p>
+                <h1 className="text-3xl font-display font-bold mt-1 text-primary-foreground">
+                  Welcome to Admin Dashboard
+                </h1>
+                <p className="text-primary-foreground/70 text-sm font-sans mt-1">
+                  Manage your premium jewellery store with elegance
+                </p>
+              </div>
             </div>
-          </div>
-          <Button className="gap-2" onClick={() => navigate("/orders")}>
-            <Receipt className="h-4 w-4" /> Generate Bill
-          </Button>
-        </CardContent>
-      </Card>
+            <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg" onClick={() => navigate("/orders")}>
+              <Receipt className="h-4 w-4" /> Generate Bill
+            </Button>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Revenue KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" variants={item}>
         {[
-          { label: "Today's Revenue", value: 0, sub: "Orders + Bills", to: "/revenue-details" },
-          { label: "This Week", value: 0, sub: "+8%", to: "/revenue-details" },
-          { label: "This Month", value: 9132, sub: "85% of goal", to: "/revenue-details" },
-          { label: "Total Revenue", value: 46177, sub: "All time", to: "/revenue-details" },
+          { label: "Total Products", value: 11, icon: Package, sub: "In catalog", prefix: "" },
+          { label: "Total Orders", value: 15, icon: ShoppingCart, sub: "1 pending", prefix: "" },
+          { label: "Total Revenue", value: 46177, icon: IndianRupee, sub: "All time", prefix: "₹" },
+          { label: "Total Brands", value: 4, icon: Tag, sub: "Active", prefix: "" },
         ].map((kpi) => (
           <Card
             key={kpi.label}
-            className="glass-card card-hover rounded-xl cursor-pointer"
-            onClick={() => navigate(kpi.to)}
+            className="glass-card card-hover rounded-2xl cursor-pointer group"
+            onClick={() => navigate(kpi.label.includes("Revenue") ? "/revenue-details" : kpi.label.includes("Product") ? "/products" : kpi.label.includes("Order") ? "/orders" : "/brands")}
           >
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground font-sans">{kpi.label}</span>
-                <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <IndianRupee className="h-4 w-4 text-primary" />
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-muted-foreground font-sans font-medium">{kpi.label}</span>
+                <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <kpi.icon className="h-5 w-5 text-primary" />
                 </div>
               </div>
-              <p className="text-2xl font-bold font-display">
-                <AnimatedCounter target={kpi.value} prefix="₹" />
+              <p className="text-3xl font-bold font-display">
+                <AnimatedCounter target={kpi.value} prefix={kpi.prefix} />
               </p>
-              <p className="text-xs text-accent mt-1 flex items-center gap-1">
+              <p className="text-xs text-accent mt-1.5 flex items-center gap-1 font-medium">
                 <ArrowUpRight className="h-3 w-3" />{kpi.sub}
               </p>
             </CardContent>
           </Card>
         ))}
-      </div>
+      </motion.div>
 
       {/* Quick Stats Navigation Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <motion.div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" variants={item}>
         {quickStats.map((s) => (
           <Card
             key={s.label}
-            className="glass-card card-hover rounded-xl cursor-pointer group"
+            className="glass-card card-hover rounded-2xl cursor-pointer group"
             onClick={() => navigate(s.to)}
           >
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-sans">{s.label}</span>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-sans font-medium">{s.label}</span>
                 <s.icon className={`h-5 w-5 ${s.color} opacity-70 group-hover:opacity-100 transition-opacity`} />
               </div>
               <p className="text-2xl font-bold font-display">{s.value}</p>
-              <p className="text-xs text-accent flex items-center gap-1 mt-1">
+              <p className="text-xs text-accent flex items-center gap-1 mt-1 font-medium">
                 <ArrowUpRight className="h-3 w-3" />{s.sub}
               </p>
             </CardContent>
           </Card>
         ))}
-      </div>
+      </motion.div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2 glass-card rounded-xl">
+      <motion.div className="grid grid-cols-1 lg:grid-cols-3 gap-4" variants={item}>
+        <Card className="lg:col-span-2 glass-card rounded-2xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-display flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-accent" /> Sales Analytics
-              <span className="text-xs text-muted-foreground font-sans font-normal ml-1">Last 30 days performance</span>
+              <BarChart3 className="h-4 w-4 text-accent" /> Revenue Trend
+              <span className="text-xs text-muted-foreground font-sans font-normal ml-1">Last 7 days</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={salesData}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -161,12 +203,12 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="glass-card rounded-xl">
+        <Card className="glass-card rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-display">Category Split</CardTitle>
+            <CardTitle className="text-base font-display">Orders by Status</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={210}>
               <PieChart>
                 <Pie data={categoryData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={4}>
                   {categoryData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
@@ -174,10 +216,10 @@ export default function DashboardPage() {
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
-            <div className="grid grid-cols-2 gap-2 mt-2">
+            <div className="grid grid-cols-2 gap-2 mt-3">
               {categoryData.map((c) => (
                 <div key={c.name} className="flex items-center gap-2 text-xs font-sans">
-                  <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: c.color }} />
+                  <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
                   <span className="text-muted-foreground">{c.name}</span>
                   <span className="ml-auto font-medium">{c.value}%</span>
                 </div>
@@ -185,11 +227,59 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
+
+      {/* Top Selling Products Bar Chart */}
+      <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-4" variants={item}>
+        <Card className="glass-card rounded-2xl">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-display flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-accent" /> Top Selling Products
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={topProducts} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(330, 15%, 88%)" />
+                <XAxis type="number" tick={{ fontSize: 12 }} />
+                <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={100} />
+                <Tooltip contentStyle={{ borderRadius: "12px" }} />
+                <Bar dataKey="sales" fill="hsl(42, 60%, 51%)" radius={[0, 6, 6, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Brands Overview */}
+        <Card className="glass-card rounded-2xl">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-base font-display flex items-center gap-2">
+              <Tag className="h-4 w-4 text-accent" /> Brands Overview
+            </CardTitle>
+            <Button variant="ghost" size="sm" className="text-xs" onClick={() => navigate("/brands")}>View All</Button>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {brands.map((b) => (
+                <div key={b.name} className="flex items-center gap-3 p-3 rounded-xl bg-secondary/40 hover:bg-secondary/70 transition-colors cursor-pointer" onClick={() => navigate("/brands")}>
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Tag className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{b.name}</p>
+                    <p className="text-xs text-muted-foreground">{b.products} Products</p>
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Insights + Recent Orders */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="glass-card rounded-xl">
+      <motion.div className="grid grid-cols-1 lg:grid-cols-3 gap-4" variants={item}>
+        <Card className="glass-card rounded-2xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-display flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-accent" /> Smart Insights
@@ -199,10 +289,10 @@ export default function DashboardPage() {
             {insights.map((insight, i) => (
               <div
                 key={i}
-                className={`flex items-start gap-3 p-3 rounded-lg text-sm font-sans ${
-                  insight.type === "warning" ? "bg-amber-50 text-amber-800"
-                    : insight.type === "success" ? "bg-emerald-50 text-emerald-800"
-                    : "bg-red-50 text-red-800"
+                className={`flex items-start gap-3 p-3 rounded-xl text-sm font-sans ${
+                  insight.type === "warning" ? "bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300"
+                    : insight.type === "success" ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300"
+                    : "bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300"
                 }`}
               >
                 <insight.icon className="h-4 w-4 mt-0.5 shrink-0" />
@@ -212,7 +302,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2 glass-card rounded-xl cursor-pointer" onClick={() => navigate("/orders")}>
+        <Card className="lg:col-span-2 glass-card rounded-2xl cursor-pointer" onClick={() => navigate("/orders")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-display">Recent Orders</CardTitle>
           </CardHeader>
@@ -221,23 +311,23 @@ export default function DashboardPage() {
               <table className="w-full text-sm font-sans">
                 <thead>
                   <tr className="text-muted-foreground text-xs border-b">
-                    <th className="text-left py-2 font-medium">Order</th>
-                    <th className="text-left py-2 font-medium">Customer</th>
-                    <th className="text-left py-2 font-medium">Amount</th>
-                    <th className="text-left py-2 font-medium">Status</th>
-                    <th className="text-right py-2 font-medium">Time</th>
+                    <th className="text-left py-2.5 font-medium">Order</th>
+                    <th className="text-left py-2.5 font-medium">Customer</th>
+                    <th className="text-left py-2.5 font-medium">Amount</th>
+                    <th className="text-left py-2.5 font-medium">Status</th>
+                    <th className="text-right py-2.5 font-medium">Time</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recentOrders.map((order) => (
                     <tr key={order.id} className="border-b last:border-0 hover:bg-secondary/30 transition-colors">
-                      <td className="py-2.5 font-medium">{order.id}</td>
-                      <td className="py-2.5">{order.customer}</td>
-                      <td className="py-2.5 font-medium">{order.amount}</td>
-                      <td className="py-2.5">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[order.status]}`}>{order.status}</span>
+                      <td className="py-3 font-medium">{order.id}</td>
+                      <td className="py-3">{order.customer}</td>
+                      <td className="py-3 font-medium">{order.amount}</td>
+                      <td className="py-3">
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColors[order.status]}`}>{order.status}</span>
                       </td>
-                      <td className="py-2.5 text-right text-muted-foreground text-xs">
+                      <td className="py-3 text-right text-muted-foreground text-xs">
                         <Clock className="h-3 w-3 inline mr-1" />{order.time}
                       </td>
                     </tr>
@@ -247,7 +337,33 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
-    </div>
+      </motion.div>
+
+      {/* Recent Activity */}
+      <motion.div variants={item}>
+        <Card className="glass-card rounded-2xl">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-display flex items-center gap-2">
+              <Activity className="h-4 w-4 text-accent" /> Recent Activity
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1">
+              {recentActivity.map((act, i) => (
+                <div key={i} className="flex items-center gap-3 py-3 border-b last:border-0">
+                  <div className={`h-8 w-8 rounded-lg bg-secondary flex items-center justify-center shrink-0 ${act.color}`}>
+                    <act.icon className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{act.text}</p>
+                  </div>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{act.time}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </motion.div>
   );
 }
