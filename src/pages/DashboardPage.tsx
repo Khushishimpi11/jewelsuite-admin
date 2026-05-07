@@ -1,12 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
-import { Badge } from "@/components/ui/badge";
 import {
   IndianRupee, ShoppingCart, Users, TrendingUp, Package,
   ArrowUpRight, Clock, AlertTriangle, Gem, BarChart3,
-  Warehouse, PackageMinus, FolderTree, Receipt, Tag,
-  Plus, Truck, CheckCircle2, Activity,
+  PackageMinus, FolderTree, Receipt, Tag,
+  Activity,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -14,64 +13,28 @@ import {
 } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logoicon.png";
+import { useJewelleryCMS } from "@/context/JewelleryCMSContext";
+import { useEffect, useState } from "react";
 
-const salesData = [
-  { name: "Mon", revenue: 42000 }, { name: "Tue", revenue: 58000 },
-  { name: "Wed", revenue: 35000 }, { name: "Thu", revenue: 72000 },
-  { name: "Fri", revenue: 89000 }, { name: "Sat", revenue: 95000 },
-  { name: "Sun", revenue: 67000 },
-];
-
-const categoryData = [
-  { name: "Rings", value: 35, color: "hsl(340, 65%, 20%)" },
-  { name: "Necklaces", value: 28, color: "hsl(42, 60%, 51%)" },
-  { name: "Earrings", value: 20, color: "hsl(340, 40%, 35%)" },
-  { name: "Bracelets", value: 17, color: "hsl(330, 15%, 70%)" },
-];
-
-const topProducts = [
-  { name: "Diamond Ring", sales: 52 },
-  { name: "Temple Necklace", sales: 38 },
-  { name: "Pearl Earrings", sales: 31 },
-  { name: "Gold Bracelet", sales: 24 },
-  { name: "Kundan Set", sales: 18 },
-];
-
-const recentOrders = [
-  { id: "#JK-1234", customer: "Priya Sharma", amount: "₹45,200", status: "Delivered", time: "2h ago" },
-  { id: "#JK-1235", customer: "Rahul Mehta", amount: "₹1,25,000", status: "Shipped", time: "4h ago" },
-  { id: "#JK-1236", customer: "Anita Desai", amount: "₹32,800", status: "Processing", time: "5h ago" },
-  { id: "#JK-1237", customer: "Vikram Singh", amount: "₹78,500", status: "Pending", time: "6h ago" },
-  { id: "#JK-1238", customer: "Meera Joshi", amount: "₹56,200", status: "Delivered", time: "8h ago" },
-];
-
-const insights = [
-  { icon: TrendingUp, text: "Gold price up 2.3% — review margins on 22K items", type: "warning" as const },
-  { icon: Gem, text: "Top category this week: Rings (35% of sales)", type: "success" as const },
-  { icon: AlertTriangle, text: "Sales dropped 12% in last 3 days vs prior week", type: "danger" as const },
-];
-
-const recentActivity = [
-  { icon: Plus, text: "Diamond Solitaire Ring added to catalog", time: "10 min ago", color: "text-emerald-600" },
-  { icon: ShoppingCart, text: "New order #JK-1240 placed by Priya S.", time: "25 min ago", color: "text-primary" },
-  { icon: Truck, text: "Order #JK-1235 marked as Shipped", time: "1h ago", color: "text-blue-600" },
-  { icon: CheckCircle2, text: "Order #JK-1234 delivered successfully", time: "2h ago", color: "text-emerald-600" },
-  { icon: AlertTriangle, text: "Low stock alert: Gold Temple Necklace (3 left)", time: "3h ago", color: "text-amber-600" },
-];
-
+// Status colors for orders
 const statusColors: Record<string, string> = {
-  Delivered: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  Shipped: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  Processing: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  Pending: "bg-muted text-muted-foreground",
+  Delivered: "bg-emerald-100 text-emerald-700",
+  Shipped: "bg-blue-100 text-blue-700",
+  "Out for Delivery": "bg-purple-100 text-purple-700",
+  Processing: "bg-amber-100 text-amber-700",
+  Confirmed: "bg-indigo-100 text-indigo-700",
+  Pending: "bg-gray-100 text-gray-700",
+  Cancelled: "bg-red-100 text-red-700",
 };
 
-const brands = [
-  { name: "Tanishq", products: 24 },
-  { name: "Kalyan Jewellers", products: 18 },
-  { name: "Malabar Gold", products: 31 },
-  { name: "JewelsKart Original", products: 42 },
+const categoryColors = [
+  "hsl(340, 65%, 20%)",
+  "hsl(42, 60%, 51%)",
+  "hsl(340, 40%, 35%)",
+  "hsl(330, 15%, 70%)",
+  "hsl(200, 70%, 45%)",
+  "hsl(120, 50%, 45%)",
 ];
 
 const container = {
@@ -85,38 +48,269 @@ const item = {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  
+  const {
+    products,
+    orders,
+    customers,
+    getTotalRevenue,
+    getLowStockProducts,
+    getOutOfStockCount,
+    getProductCount,
+    getTotalOrders,
+    getTotalCustomers,
+    getCategoryCount,
+    loading,
+    error,
+  } = useJewelleryCMS();
 
+  const [salesData, setSalesData] = useState<any[]>([]);
+  const [categoryData, setCategoryData] = useState<any[]>([]);
+  const [topProducts, setTopProducts] = useState<any[]>([]);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [insights, setInsights] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
+
+  const totalProducts = getProductCount();
+  const totalOrders = getTotalOrders();
+  const totalRevenue = getTotalRevenue();
+  const totalCustomers = getTotalCustomers();
+  const totalCategories = getCategoryCount();
+  const outOfStockCount = getOutOfStockCount();
+  const lowStockCount = getLowStockProducts().length;
+  const pendingOrders = orders.filter(o => o.status === "Pending" || o.status === "pending").length;
+
+  // Generate sales data from real orders
+  useEffect(() => {
+    if (orders.length > 0) {
+      const last7Days = [...Array(7)].map((_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        return date.toLocaleDateString('en-IN', { weekday: 'short' });
+      }).reverse();
+      
+      const salesByDay = last7Days.map(day => {
+        const dayOrders = orders.filter(order => {
+          const orderDate = new Date(order.createdAt || order.date).toLocaleDateString('en-IN', { weekday: 'short' });
+          return orderDate === day && order.status !== "Cancelled";
+        });
+        const revenue = dayOrders.reduce((sum, o) => sum + (o.total || o.totalAmount || 0), 0);
+        return { name: day, revenue };
+      });
+      
+      setSalesData(salesByDay);
+    }
+  }, [orders]);
+
+  // Generate category data from real products
+  useEffect(() => {
+    if (products.length > 0) {
+      const categoryCount: Record<string, number> = {};
+      products.forEach(product => {
+        const catName = product.category || "Uncategorized";
+        categoryCount[catName] = (categoryCount[catName] || 0) + 1;
+      });
+      
+      const catData = Object.entries(categoryCount).map(([name, count], index) => ({
+        name,
+        value: Math.round((count / products.length) * 100),
+        color: categoryColors[index % categoryColors.length]
+      }));
+      setCategoryData(catData);
+    }
+  }, [products]);
+
+  // Generate top selling products from real orders
+  useEffect(() => {
+    if (orders.length > 0) {
+      const productSales: Record<string, number> = {};
+      orders.forEach(order => {
+        if (order.items && Array.isArray(order.items)) {
+          order.items.forEach((item: any) => {
+            const productName = item.name || item.productName;
+            if (productName) {
+              productSales[productName] = (productSales[productName] || 0) + (item.quantity || 1);
+            }
+          });
+        }
+      });
+      
+      const top5 = Object.entries(productSales)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([name, sales]) => ({ name: name.length > 20 ? name.slice(0, 20) + '...' : name, sales }));
+      
+      setTopProducts(top5);
+    }
+  }, [orders]);
+
+  // Generate recent orders from real data
+  useEffect(() => {
+    if (orders.length > 0) {
+      const recent = orders.slice(0, 5).map(order => ({
+        id: order.orderNumber || order.id?.slice(-8) || "#N/A",
+        customer: order.customerName || "Guest",
+        amount: `₹${(order.total || order.totalAmount || 0).toLocaleString()}`,
+        status: order.status || "Pending",
+        date: order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "N/A"
+      }));
+      setRecentOrders(recent);
+    }
+  }, [orders]);
+
+  // Generate brands from real products
+  useEffect(() => {
+    if (products.length > 0) {
+      const brandCount: Record<string, number> = {};
+      products.forEach(product => {
+        const brand = product.brand || "JewelsKart Original";
+        brandCount[brand] = (brandCount[brand] || 0) + 1;
+      });
+      
+      const brandList = Object.entries(brandCount).map(([name, count]) => ({
+        name,
+        products: count
+      }));
+      setBrands(brandList);
+    }
+  }, [products]);
+
+  // Generate insights from real data
+  useEffect(() => {
+    const newInsights = [];
+    
+    if (lowStockCount > 0) {
+      newInsights.push({
+        icon: AlertTriangle,
+        text: `${lowStockCount} products are low on stock — restock soon`,
+        type: "warning"
+      });
+    }
+    
+    if (categoryData.length > 0) {
+      const topCategory = categoryData.reduce((max, cat) => cat.value > max.value ? cat : max, categoryData[0]);
+      newInsights.push({
+        icon: Gem,
+        text: `Top category: ${topCategory.name} (${topCategory.value}% of products)`,
+        type: "success"
+      });
+    }
+    
+    if (pendingOrders > 0) {
+      newInsights.push({
+        icon: Clock,
+        text: `${pendingOrders} pending orders need attention`,
+        type: "warning"
+      });
+    }
+    
+    if (newInsights.length === 0) {
+      newInsights.push({
+        icon: TrendingUp,
+        text: "All systems operational. Store is running smoothly!",
+        type: "success"
+      });
+    }
+    
+    setInsights(newInsights);
+  }, [lowStockCount, categoryData, pendingOrders]);
+
+  // Generate recent activity from real data
+  useEffect(() => {
+    const activity = [];
+    
+    if (orders.length > 0) {
+      const lastOrder = orders[0];
+      if (lastOrder) {
+        activity.push({
+          icon: ShoppingCart,
+          text: `New order ${lastOrder.orderNumber || lastOrder.id?.slice(-8)} placed`,
+          date: lastOrder.createdAt ? new Date(lastOrder.createdAt).toLocaleDateString() : "Recently",
+          color: "text-primary"
+        });
+      }
+    }
+    
+    const lowStockProducts = getLowStockProducts();
+    if (lowStockProducts.length > 0) {
+      activity.push({
+        icon: AlertTriangle,
+        text: `Low stock alert: ${lowStockProducts[0]?.name} (${lowStockProducts[0]?.stock} left)`,
+        date: "Now",
+        color: "text-amber-600"
+      });
+    }
+    
+    setRecentActivity(activity.slice(0, 5));
+  }, [orders, getLowStockProducts]);
+
+  // Quick stats with navigation
   const quickStats = [
-    { label: "PRODUCTS", value: 11, sub: "11 items", icon: Package, to: "/products", color: "text-primary" },
-    { label: "ORDERS", value: 15, sub: "1 pending", icon: ShoppingCart, to: "/orders", color: "text-primary" },
-    { label: "OUT OF STOCK", value: 0, sub: "All stocked", icon: PackageMinus, to: "/inventory?filter=out", color: "text-emerald-600" },
-    { label: "LOW STOCK", value: 0, sub: "Healthy", icon: AlertTriangle, to: "/inventory?filter=low", color: "text-amber-600" },
-    { label: "CUSTOMERS", value: 4, sub: "Active users", icon: Users, to: "/customers", color: "text-primary" },
-    { label: "CATEGORIES", value: 20, sub: "Active", icon: FolderTree, to: "/categories", color: "text-primary" },
+    { label: "PRODUCTS", value: totalProducts, sub: `${totalProducts} items`, icon: Package, to: "/products", color: "text-primary" },
+    { label: "ORDERS", value: totalOrders, sub: `${pendingOrders} pending`, icon: ShoppingCart, to: "/orders", color: "text-primary" },
+    { label: "OUT OF STOCK", value: outOfStockCount, sub: outOfStockCount === 0 ? "All stocked" : `${outOfStockCount} items`, icon: PackageMinus, to: "/inventory?filter=out", color: outOfStockCount === 0 ? "text-emerald-600" : "text-red-500" },
+    { label: "LOW STOCK", value: lowStockCount, sub: lowStockCount === 0 ? "Healthy" : `${lowStockCount} items`, icon: AlertTriangle, to: "/inventory?filter=low", color: lowStockCount === 0 ? "text-emerald-600" : "text-amber-600" },
+    { label: "CUSTOMERS", value: totalCustomers, sub: "Active users", icon: Users, to: "/customers", color: "text-primary" },
+    { label: "CATEGORIES", value: totalCategories, sub: "Active", icon: FolderTree, to: "/categories", color: "text-primary" },
   ];
 
+  const revenueKPIs = [
+    { label: "Total Products", value: totalProducts, icon: Package, sub: "In catalog", prefix: "" },
+    { label: "Total Orders", value: totalOrders, icon: ShoppingCart, sub: `${pendingOrders} pending`, prefix: "" },
+    { label: "Total Revenue", value: totalRevenue, icon: IndianRupee, sub: "All time", prefix: "₹" },
+    { label: "Total Brands", value: brands.length, icon: Tag, sub: "Active", prefix: "" },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <p className="text-destructive font-medium mb-2">Error loading data</p>
+          <p className="text-muted-foreground text-sm">{error}</p>
+          <Button className="mt-4" onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <motion.div className="space-y-8" variants={container} initial="hidden" animate="show">
+    <motion.div className="space-y-8 p-6" variants={container} initial="hidden" animate="show">
       {/* Welcome Banner */}
       <motion.div variants={item}>
-        <Card className="rounded-2xl overflow-hidden relative border-0 bg-gradient-to-r from-primary via-primary to-primary/80">
+        <Card className="rounded-2xl overflow-hidden border-0 bg-gradient-to-r from-primary via-primary to-primary/80">
           <CardContent className="p-6 md:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start gap-4">
-              <img src={logo} alt="JewelsKart" className="h-14 w-14 object-contain hidden sm:block drop-shadow-lg" />
               <div>
-                <p className="text-xs text-accent font-sans flex items-center gap-1 font-medium">
-                  <Gem className="h-3 w-3" /> Welcome Back, Admin
+                <p className="text-xs text-white flex items-center gap-1 font-medium">
+                  <img src={logo} alt="logo" className="h-5 w-5 object-contain" />
+                  Welcome Back, Admin
                 </p>
-                <h1 className="text-3xl font-display font-bold mt-1 text-primary-foreground">
+                <h1 className="text-3xl font-bold mt-1 text-white">
                   Welcome to Admin Dashboard
                 </h1>
-                <p className="text-primary-foreground/70 text-sm font-sans mt-1">
+                <p className="text-white/70 text-sm mt-1">
                   Manage your premium jewellery store with elegance
+                </p>
+                <p className="text-white/60 text-xs mt-2">
+                  {totalProducts} Products • {totalOrders} Orders • {totalCustomers} Customers
                 </p>
               </div>
             </div>
-            <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg" onClick={() => navigate("/orders")}>
-              <Receipt className="h-4 w-4" /> Generate Bill
+            <Button className="gap-2 bg-white text-primary hover:bg-white/90 shadow-lg" onClick={() => navigate("/orders")}>
+              <Receipt className="h-4 w-4" /> Manage Orders
             </Button>
           </CardContent>
         </Card>
@@ -124,25 +318,25 @@ export default function DashboardPage() {
 
       {/* Revenue KPI Cards */}
       <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" variants={item}>
-        {[
-          { label: "Total Products", value: 11, icon: Package, sub: "In catalog", prefix: "" },
-          { label: "Total Orders", value: 15, icon: ShoppingCart, sub: "1 pending", prefix: "" },
-          { label: "Total Revenue", value: 46177, icon: IndianRupee, sub: "All time", prefix: "₹" },
-          { label: "Total Brands", value: 4, icon: Tag, sub: "Active", prefix: "" },
-        ].map((kpi) => (
+        {revenueKPIs.map((kpi) => (
           <Card
             key={kpi.label}
-            className="glass-card card-hover rounded-2xl cursor-pointer group"
-            onClick={() => navigate(kpi.label.includes("Revenue") ? "/revenue-details" : kpi.label.includes("Product") ? "/products" : kpi.label.includes("Order") ? "/orders" : "/brands")}
+            className="cursor-pointer hover:shadow-lg transition-shadow rounded-2xl"
+            onClick={() => {
+              if (kpi.label.includes("Revenue")) navigate("/revenue-details");
+              else if (kpi.label.includes("Product")) navigate("/products");
+              else if (kpi.label.includes("Order")) navigate("/orders");
+              else navigate("/brands");
+            }}
           >
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-muted-foreground font-sans font-medium">{kpi.label}</span>
-                <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                <span className="text-sm text-muted-foreground font-medium">{kpi.label}</span>
+                <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
                   <kpi.icon className="h-5 w-5 text-primary" />
                 </div>
               </div>
-              <p className="text-3xl font-bold font-display">
+              <p className="text-3xl font-bold">
                 <AnimatedCounter target={kpi.value} prefix={kpi.prefix} />
               </p>
               <p className="text-xs text-accent mt-1.5 flex items-center gap-1 font-medium">
@@ -158,15 +352,15 @@ export default function DashboardPage() {
         {quickStats.map((s) => (
           <Card
             key={s.label}
-            className="glass-card card-hover rounded-2xl cursor-pointer group"
+            className="cursor-pointer hover:shadow-md transition-shadow rounded-2xl"
             onClick={() => navigate(s.to)}
           >
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-sans font-medium">{s.label}</span>
-                <s.icon className={`h-5 w-5 ${s.color} opacity-70 group-hover:opacity-100 transition-opacity`} />
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{s.label}</span>
+                <s.icon className={`h-5 w-5 ${s.color} opacity-70`} />
               </div>
-              <p className="text-2xl font-bold font-display">{s.value}</p>
+              <p className="text-2xl font-bold">{s.value}</p>
               <p className="text-xs text-accent flex items-center gap-1 mt-1 font-medium">
                 <ArrowUpRight className="h-3 w-3" />{s.sub}
               </p>
@@ -177,11 +371,11 @@ export default function DashboardPage() {
 
       {/* Charts Row */}
       <motion.div className="grid grid-cols-1 lg:grid-cols-3 gap-4" variants={item}>
-        <Card className="lg:col-span-2 glass-card rounded-2xl">
+        <Card className="lg:col-span-2 rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-display flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-accent" /> Revenue Trend
-              <span className="text-xs text-muted-foreground font-sans font-normal ml-1">Last 7 days</span>
+              <span className="text-xs text-muted-foreground font-normal ml-1">Last 7 days</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -196,16 +390,16 @@ export default function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(330, 15%, 88%)" />
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="hsl(340, 10%, 45%)" />
                 <YAxis tick={{ fontSize: 12 }} stroke="hsl(340, 10%, 45%)" />
-                <Tooltip contentStyle={{ borderRadius: "12px", border: "1px solid hsl(330, 15%, 88%)" }} />
+                <Tooltip contentStyle={{ borderRadius: "12px" }} />
                 <Area type="monotone" dataKey="revenue" stroke="hsl(340, 65%, 20%)" strokeWidth={2} fill="url(#colorRevenue)" />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card className="glass-card rounded-2xl">
+        <Card className="rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-display">Orders by Status</CardTitle>
+            <CardTitle className="text-base">Products by Category</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={210}>
@@ -218,7 +412,7 @@ export default function DashboardPage() {
             </ResponsiveContainer>
             <div className="grid grid-cols-2 gap-2 mt-3">
               {categoryData.map((c) => (
-                <div key={c.name} className="flex items-center gap-2 text-xs font-sans">
+                <div key={c.name} className="flex items-center gap-2 text-xs">
                   <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
                   <span className="text-muted-foreground">{c.name}</span>
                   <span className="ml-auto font-medium">{c.value}%</span>
@@ -229,11 +423,11 @@ export default function DashboardPage() {
         </Card>
       </motion.div>
 
-      {/* Top Selling Products Bar Chart */}
+      {/* Top Selling Products */}
       <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-4" variants={item}>
-        <Card className="glass-card rounded-2xl">
+        <Card className="rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-display flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-accent" /> Top Selling Products
             </CardTitle>
           </CardHeader>
@@ -251,9 +445,9 @@ export default function DashboardPage() {
         </Card>
 
         {/* Brands Overview */}
-        <Card className="glass-card rounded-2xl">
+        <Card className="rounded-2xl">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-base font-display flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
               <Tag className="h-4 w-4 text-accent" /> Brands Overview
             </CardTitle>
             <Button variant="ghost" size="sm" className="text-xs" onClick={() => navigate("/brands")}>View All</Button>
@@ -279,9 +473,9 @@ export default function DashboardPage() {
 
       {/* Insights + Recent Orders */}
       <motion.div className="grid grid-cols-1 lg:grid-cols-3 gap-4" variants={item}>
-        <Card className="glass-card rounded-2xl">
+        <Card className="rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-display flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-accent" /> Smart Insights
             </CardTitle>
           </CardHeader>
@@ -289,10 +483,10 @@ export default function DashboardPage() {
             {insights.map((insight, i) => (
               <div
                 key={i}
-                className={`flex items-start gap-3 p-3 rounded-xl text-sm font-sans ${
-                  insight.type === "warning" ? "bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300"
-                    : insight.type === "success" ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300"
-                    : "bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300"
+                className={`flex items-start gap-3 p-3 rounded-xl text-sm ${
+                  insight.type === "warning" ? "bg-amber-50 text-amber-800" :
+                  insight.type === "success" ? "bg-emerald-50 text-emerald-800" :
+                  "bg-red-50 text-red-800"
                 }`}
               >
                 <insight.icon className="h-4 w-4 mt-0.5 shrink-0" />
@@ -302,48 +496,69 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2 glass-card rounded-2xl cursor-pointer" onClick={() => navigate("/orders")}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-display">Recent Orders</CardTitle>
+        {/* Recent Orders with View All Button */}
+        <Card className="lg:col-span-2 rounded-2xl">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Recent Orders</CardTitle>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate("/orders")}
+              className="gap-1"
+            >
+              View All Orders
+              <ArrowUpRight className="h-3 w-3" />
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm font-sans">
+              <table className="w-full text-sm">
                 <thead>
                   <tr className="text-muted-foreground text-xs border-b">
                     <th className="text-left py-2.5 font-medium">Order</th>
                     <th className="text-left py-2.5 font-medium">Customer</th>
                     <th className="text-left py-2.5 font-medium">Amount</th>
                     <th className="text-left py-2.5 font-medium">Status</th>
-                    <th className="text-right py-2.5 font-medium">Time</th>
+                    <th className="text-right py-2.5 font-medium">Date</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recentOrders.map((order) => (
-                    <tr key={order.id} className="border-b last:border-0 hover:bg-secondary/30 transition-colors">
+                    <tr 
+                      key={order.id} 
+                      className="border-b last:border-0 hover:bg-secondary/30 transition-colors cursor-pointer"
+                      onClick={() => navigate("/orders")}
+                    >
                       <td className="py-3 font-medium">{order.id}</td>
                       <td className="py-3">{order.customer}</td>
                       <td className="py-3 font-medium">{order.amount}</td>
                       <td className="py-3">
-                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColors[order.status]}`}>{order.status}</span>
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColors[order.status] || statusColors.Pending}`}>
+                          {order.status}
+                        </span>
                       </td>
                       <td className="py-3 text-right text-muted-foreground text-xs">
-                        <Clock className="h-3 w-3 inline mr-1" />{order.time}
+                        <Clock className="h-3 w-3 inline mr-1" />{order.date}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            {recentOrders.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No orders yet
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
 
       {/* Recent Activity */}
       <motion.div variants={item}>
-        <Card className="glass-card rounded-2xl">
+        <Card className="rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-display flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
               <Activity className="h-4 w-4 text-accent" /> Recent Activity
             </CardTitle>
           </CardHeader>
@@ -357,7 +572,7 @@ export default function DashboardPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{act.text}</p>
                   </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">{act.time}</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{act.date}</span>
                 </div>
               ))}
             </div>

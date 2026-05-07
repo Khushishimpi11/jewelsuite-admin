@@ -86,10 +86,10 @@ export default function BrandsPage() {
   );
 
   return (
-    <motion.div className="space-y-6" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+    <motion.div className="space-y-6 p-6" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-display font-bold">Brands</h1>
+          <h1 className="text-3xl font-display font-bold">Brands</h1>
           <p className="text-muted-foreground text-sm font-sans">{brands.length} brands · Multi-brand management</p>
         </div>
         <div className="flex gap-2">
