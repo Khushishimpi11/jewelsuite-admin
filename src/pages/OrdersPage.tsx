@@ -620,21 +620,30 @@ export default function OrdersPage() {
     }
   };
 
-  const handleDeleteOrder = async () => {
-    if (!orderToDelete) return;
+ const handleDeleteOrder = async () => {
+  if (!orderToDelete) return;
+  
+  setDeleting(true);
+  try {
+    await deleteOrderAPI(orderToDelete.id);
+    toast({ title: "Success", description: "Order deleted successfully" });
     
-    setDeleting(true);
-    try {
-      await deleteOrderAPI(orderToDelete.id);
-      toast({ title: "Success", description: "Order deleted successfully" });
-      setDeleteDialogOpen(false);
-      setOrderToDelete(null);
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    } finally {
-      setDeleting(false);
-    }
-  };
+    // ✅ Refresh orders list
+    await fetchOrdersFromAPI();
+    
+    // ✅ Refresh customers to update stats
+    await fetchCustomers();
+    
+    // ✅ Close dialog
+    setDeleteDialogOpen(false);
+    setOrderToDelete(null);
+    
+  } catch (err: any) {
+    toast({ title: "Error", description: err.message, variant: "destructive" });
+  } finally {
+    setDeleting(false);
+  }
+};
 
   const handleDeleteAllOrders = async () => {
     setDeleting(true);
