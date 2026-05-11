@@ -33,6 +33,9 @@ import ResetPasswordPage from "@/pages/ResetPasswordPage";
 // 👇 Import ImageManager from pages folder
 import ImageManager from "@/pages/ImageManager";
 
+// 👇 Import AdminReviews component
+import AdminReviews from "@/pages/AdminReviews";
+
 // 👇 Import JewelleryCMSProvider
 import { JewelleryCMSProvider } from "./context/JewelleryCMSContext";
 
@@ -78,6 +81,9 @@ const App = () => (
                 <Route path="/returns" element={<ReturnRequestsPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/image-manager" element={<ImageManager />} />
+                
+                {/* 👇 Add Admin Reviews Route */}
+                <Route path="/reviews" element={<AdminReviews />} />
               </Route>
               
               {/* 404 Route */}

@@ -1,6 +1,7 @@
 import {
   LayoutDashboard, Package, ShoppingCart, Users, BarChart3, Settings, Tag,
-  CreditCard, Megaphone, Warehouse, FolderTree, Gem, RefreshCw, Image, // ✅ ADDED Image icon
+  CreditCard, Megaphone, Warehouse, FolderTree, Gem, RefreshCw, Image,
+  MessageSquare, // 👈 Reviews icon
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -26,18 +27,18 @@ const mainNav = [
   { title: "Categories", url: "/categories", icon: FolderTree },
 ];
 
-// ✅ ADDED Returns in businessNav
+// 👇 REMOVED Marketing from businessNav
 const businessNav = [
   { title: "Payments", url: "/payments", icon: CreditCard },
-  { title: "Marketing", url: "/marketing", icon: Megaphone },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Brands", url: "/brands", icon: Tag },
   { title: "Returns", url: "/returns", icon: RefreshCw },
 ];
 
-// ✅ ADDED NEW NAVIGATION - Content Management section
+// 👇 CONTENT MANAGEMENT SECTION
 const contentNav = [
   { title: "Section Images", url: "/image-manager", icon: Image },
+  { title: "Reviews", url: "/reviews", icon: MessageSquare },
 ];
 
 const systemNav = [
@@ -124,7 +125,7 @@ export function AppSidebar() {
       <SidebarContent className="px-1 overflow-hidden">
         {renderGroup("Main", mainNav)}
         {renderGroup("Business", businessNav)}
-        {renderGroup("Content", contentNav)}  {/* ✅ NEW SECTION */}
+        {renderGroup("Content", contentNav)}
         {renderGroup("System", systemNav)}
       </SidebarContent>
       <SidebarFooter className="p-4">
