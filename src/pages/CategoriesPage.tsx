@@ -81,7 +81,7 @@ export default function CategoriesPage() {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   // API Base URL
-  const API_BASE_URL = "http://localhost:5000/api";
+  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
   
   // Get token from localStorage
   const getToken = () => localStorage.getItem("admin_token") || localStorage.getItem("customer_token");

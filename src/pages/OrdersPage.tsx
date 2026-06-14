@@ -66,7 +66,7 @@ const statusConfig: Record<string, { icon: any; bg: string; text: string; border
   "Exchange Completed": { icon: CheckCircle2, bg: "bg-blue-500/10", text: "text-blue-500", border: "border-blue-500/30" },
 };
 
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const RAZORPAY_KEY_ID = "rzp_test_Sg6bppZOCOWIL6";
 
 interface ReturnRequestInfo {

@@ -10,7 +10,7 @@ import type { Order } from "@/context/JewelleryCMSContext";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const statusColors: Record<string, string> = {
   SUCCESS: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",

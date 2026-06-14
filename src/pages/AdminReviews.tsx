@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Check, X, Eye, Star, Filter, Search, Trash2, Star as StarIcon, MessageSquare, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const AdminReviews = () => {
   const [reviews, setReviews] = useState([]);
