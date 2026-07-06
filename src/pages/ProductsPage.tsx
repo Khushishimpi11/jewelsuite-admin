@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import notificationApi from "@/services/notificationApi"; // ✅ ADDED FOR NOTIFICATIONS
+import notificationApi from "@/services/notificationApi";
 
 // API Base URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
@@ -129,14 +129,24 @@ const statusColors: Record<string, string> = {
   Archived: "bg-gray-500/10 text-gray-500 border-gray-500/30",
 };
 
+const tagDisplayNames: Record<string, string> = {
+  "signature": "Signature",
+  "jewellery": "Jewellery",
+  "limited-edition": "Limited Edition",
+  "bestseller": "Bestseller",
+  "premium-pick": "Premium Pick"
+};
+
 const tagColors: Record<string, string> = {
-  "Best Seller": "bg-accent/20 text-accent",
-  "New Arrival": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  "Trending": "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+  "signature": "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400",
+  "jewellery": "bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-900/30 dark:text-teal-400",
+  "limited-edition": "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-900/30 dark:text-rose-400",
+  "bestseller": "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900/30 dark:text-indigo-400",
+  "premium-pick": "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/30 dark:text-purple-400",
 };
 
 const brandsList = ["JewelsKart Original"];
-const tagsList = ["Best Seller", "New Arrival", "Trending"];
+const tagsList = ["signature", "jewellery", "limited-edition", "bestseller", "premium-pick"];
 const ringSizes = ["5", "6", "7", "8", "9", "10", "11", "12"];
 const purityOptions = ["22K", "18K", "24K"];
 const finishOptions = ["High Polish", "Matte", "Brushed", "Antique", "Diamond Cut"];
@@ -160,21 +170,6 @@ const getSkuPrefix = (category: string): string => {
   return prefixMap[category] || "PR";
 };
 
-// ========== GET PRODUCT IMAGE HELPER ==========
-const getProductImageUrl = (product: Product, index: number = 0): string => {
-  if (product.mainImage?.url && index === 0) {
-    return product.mainImage.url.replace('/upload/', '/upload/w_400,h_400,c_fill,q_auto,f_auto/');
-  }
-  if (product.galleryImages && product.galleryImages.length > index) {
-    return product.galleryImages[index].url.replace('/upload/', '/upload/w_400,h_400,c_fill,q_auto,f_auto/');
-  }
-  if (product.images && product.images.length > index) {
-    return product.images[index];
-  }
-  return '/placeholder-image.jpg';
-};
-
-// Helper function to parse CSV lines (handles quoted values)
 const parseCSVLine = (line: string): string[] => {
   const result: string[] = [];
   let current = "";
@@ -219,27 +214,50 @@ const ProductForm = ({
   const [existingVideo, setExistingVideo] = useState<string | null>(product?.productVideo?.url || null);
   const [generatingSku, setGeneratingSku] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [localPreviewImages, setLocalPreviewImages] = useState<string[]>([]);
+  
+  // Separate state for preview images
+  const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
+  const [galleryImagePreviews, setGalleryImagePreviews] = useState<string[]>([]);
+  
+  // Track removed images for edit mode
+  const [removedImagePublicIds, setRemovedImagePublicIds] = useState<string[]>([]);
+  const [removedImageUrls, setRemovedImageUrls] = useState<string[]>([]);
+
+  // Initialize existing main image and existing gallery images safely (filtering out duplicate URLs if any)
+  const getInitialImages = () => {
+    const mainImg = product?.mainImage?.url || (product?.images && product.images[0]) || null;
+    const galleryMap = new Map<string, GalleryImage>();
+    
+    if (product?.galleryImages) {
+      product.galleryImages.forEach(img => {
+        if (img.url && img.url !== mainImg && img.url !== '') {
+          galleryMap.set(img.url, img);
+        }
+      });
+    }
+    
+    if (product?.images) {
+      product.images.forEach(url => {
+        if (url && url !== mainImg && url !== '' && !galleryMap.has(url)) {
+          galleryMap.set(url, { url, publicId: "" });
+        }
+      });
+    }
+    
+    return {
+      main: mainImg,
+      gallery: Array.from(galleryMap.values())
+    };
+  };
+
+  const initialImages = getInitialImages();
+  const [existingMainImage, setExistingMainImage] = useState<string | null>(initialImages.main);
+  const [existingGalleryImages, setExistingGalleryImages] = useState<GalleryImage[]>(initialImages.gallery);
   
   const getCategoryName = (cat: string | Category | undefined): string => {
     if (!cat) return "";
     if (typeof cat === "string") return cat;
     return cat.name || "";
-  };
-
-  // Get existing images from product
-  const getExistingImages = (): string[] => {
-    const images: string[] = [];
-    if (product?.mainImage?.url && product.mainImage.url !== '') images.push(product.mainImage.url);
-    if (product?.galleryImages) {
-      product.galleryImages.forEach(img => {
-        if (img.url && img.url !== '') images.push(img.url);
-      });
-    }
-    if (product?.images && product.images.length > 0) {
-      images.push(...product.images.filter(img => img !== ''));
-    }
-    return images.length > 0 ? images : [];
   };
 
   const [form, setForm] = useState({
@@ -250,7 +268,7 @@ const ProductForm = ({
     brand: "JewelsKart Original",
     stock: product?.stock?.toString() || "",
     description: product?.description || "",
-    images: getExistingImages(),
+    images: [] as string[],
     weight: product?.goldDetails?.weight?.toString() || "",
     purity: product?.goldDetails?.purity || "22K",
     tags: product?.tags || [] as string[],
@@ -327,22 +345,84 @@ const ProductForm = ({
     }
   };
 
-  const handleFileSelect = (file: File) => {
+  // Handle main image selection with immediate preview
+  const handleMainImageSelect = (file: File) => {
     setImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setMainImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleGalleryFileSelect = (files: FileList | null) => {
-    if (files) {
-      const newFiles = Array.from(files);
-      setGalleryFiles(prev => [...prev, ...newFiles]);
-      
-      newFiles.forEach(file => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setLocalPreviewImages(prev => [...prev, reader.result as string]);
-        };
-        reader.readAsDataURL(file);
-      });
+  // Handle gallery image selection with immediate previews
+  const handleGalleryImageSelect = (files: FileList | null) => {
+    if (!files) return;
+    
+    const newFiles = Array.from(files);
+    const uniqueNewFiles: File[] = [];
+    
+    newFiles.forEach(file => {
+      // Avoid duplicate files based on name and size
+      const isDuplicateFile = galleryFiles.some(f => f.name === file.name && f.size === file.size);
+      if (!isDuplicateFile) {
+        uniqueNewFiles.push(file);
+      }
+    });
+
+    if (uniqueNewFiles.length === 0) return;
+
+    setGalleryFiles(prev => [...prev, ...uniqueNewFiles]);
+    
+    uniqueNewFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setGalleryImagePreviews(prev => {
+          // Avoid duplicate previews
+          if (prev.includes(reader.result as string)) return prev;
+          return [...prev, reader.result as string];
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Remove main image
+  const removeMainImage = () => {
+    if (imageFile) {
+      setImageFile(null);
+      setMainImagePreview(null);
+      toast({ title: "Image Removed", description: "Main image has been removed" });
+    } else if (existingMainImage) {
+      const publicId = product?.mainImage?.publicId;
+      if (publicId) {
+        setRemovedImagePublicIds(prev => [...prev, publicId]);
+      }
+      setRemovedImageUrls(prev => [...prev, existingMainImage]);
+      setExistingMainImage(null);
+      toast({ title: "Image Removed", description: "Main image has been removed" });
+    }
+  };
+
+  // Remove gallery image
+  const removeGalleryImage = (index: number, url: string) => {
+    const isNewPreview = galleryImagePreviews.includes(url);
+    const newImageIndex = galleryImagePreviews.indexOf(url);
+    
+    if (isNewPreview && newImageIndex !== -1) {
+      setGalleryImagePreviews(prev => prev.filter((_, i) => i !== newImageIndex));
+      setGalleryFiles(prev => prev.filter((_, i) => i !== newImageIndex));
+      toast({ title: "Image Removed", description: "New gallery image has been removed" });
+    } else {
+      const galleryItem = existingGalleryImages.find(img => img.url === url);
+      if (galleryItem) {
+        if (galleryItem.publicId) {
+          setRemovedImagePublicIds(prev => [...prev, galleryItem.publicId]);
+        }
+        setRemovedImageUrls(prev => [...prev, url]);
+        setExistingGalleryImages(prev => prev.filter(img => img.url !== url));
+        toast({ title: "Image Removed", description: "Gallery image has been removed" });
+      }
     }
   };
 
@@ -373,7 +453,7 @@ const ProductForm = ({
     e.preventDefault();
     e.stopPropagation();
     
-    if (isSubmitting) return;
+    if (isSubmitting || loading) return;
     
     if (!form.name) {
       toast({ title: "Error", description: "Product name is required", variant: "destructive" });
@@ -396,8 +476,16 @@ const ProductForm = ({
     }
     
     setIsSubmitting(true);
+
+    const keptImages: string[] = [];
+    if (existingMainImage) {
+      keptImages.push(existingMainImage);
+    }
+    existingGalleryImages.forEach(img => {
+      if (img.url) keptImages.push(img.url);
+    });
     
-    onSubmit({
+    const submitData = {
       ...form,
       price: parseFloat(form.price) || 0,
       purchasePrice: parseFloat(form.purchasePrice) || 0,
@@ -410,12 +498,27 @@ const ProductForm = ({
       stoneWeight: parseFloat(form.stoneWeight) || 0,
       reviewRating: parseFloat(form.reviewRating) || 0,
       reviewCount: parseInt(form.reviewCount) || 0,
-    });
+      keptImages: keptImages,
+      existingMainImage: existingMainImage ? { url: existingMainImage, publicId: product?.mainImage?.publicId || "" } : null,
+      existingGalleryImages: existingGalleryImages,
+      removedImagePublicIds: removedImagePublicIds,
+    };
     
-    setTimeout(() => setIsSubmitting(false), 1000);
+    onSubmit(submitData);
+    
+    setTimeout(() => setIsSubmitting(false), 2000);
   };
 
-  const allDisplayImages = [...form.images, ...localPreviewImages];
+  const displayMainImage = mainImagePreview || existingMainImage;
+  const displayGalleryImages = Array.from(new Set([
+    ...existingGalleryImages.map(img => img.url),
+    ...galleryImagePreviews
+  ])).filter(url => url !== displayMainImage);
+
+  const displayImages = [
+    ...(displayMainImage ? [displayMainImage] : []),
+    ...displayGalleryImages
+  ];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-h-[70vh] overflow-y-auto px-1">
@@ -536,7 +639,7 @@ const ProductForm = ({
                     : [...form.tags, tag] 
                 })}
               >
-                {tag}
+                {tagDisplayNames[tag] || tag}
               </Badge>
             ))}
           </div>
@@ -880,7 +983,7 @@ const ProductForm = ({
         </div>
       </div>
 
-      {/* Images Section */}
+      {/* Images Section - FIXED */}
       <div className="space-y-4 border-t pt-4">
         <h3 className="font-semibold text-lg flex items-center gap-2">
           <ImageIcon className="h-5 w-5 text-primary" />
@@ -888,133 +991,102 @@ const ProductForm = ({
         </h3>
         
         {/* Main Image Upload */}
-       {/* Main Image Upload */}
-<div className="space-y-2">
-  <Label>Main Product Image *</Label>
-  <div className="flex items-center gap-4 flex-wrap">
-    {imageFile ? (
-      <div className="relative">
-        <img src={URL.createObjectURL(imageFile)} alt="Main preview" className="w-24 h-24 object-cover rounded-lg border" />
-        <button
-          type="button"
-          onClick={() => {
-            setImageFile(null);
-            toast({ title: "Image Removed", description: "Main image has been removed" });
-          }}
-          className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1 hover:bg-destructive/80 transition-colors"
-        >
-          <X className="h-3 w-3" />
-        </button>
-      </div>
-    ) : allDisplayImages[0] && !imageFile ? (
-      <div className="relative">
-        <img src={allDisplayImages[0]} alt="Main preview" className="w-24 h-24 object-cover rounded-lg border" />
-        <button
-          type="button"
-          onClick={() => {
-            // Check if the main image is from localPreviewImages
-            const isFromLocalPreview = localPreviewImages.length > 0 && allDisplayImages[0] === localPreviewImages[0];
+        <div className="space-y-2">
+          <Label>Main Product Image *</Label>
+          <div className="flex items-center gap-4 flex-wrap">
+            {displayImages.length > 0 && displayImages[0] ? (
+              <div className="relative">
+                <img 
+                  src={displayImages[0]} 
+                  alt="Main preview" 
+                  className="w-24 h-24 object-cover rounded-lg border" 
+                />
+                <button
+                  type="button"
+                  onClick={removeMainImage}
+                  className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1 hover:bg-destructive/80 transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ) : null}
             
-            if (isFromLocalPreview) {
-              // Remove from localPreviewImages
-              setLocalPreviewImages(prev => prev.slice(1));
-              // Also remove from galleryFiles
-              setGalleryFiles(prev => prev.slice(1));
-            } else if (form.images.length > 0) {
-              // Remove from existing images
-              setForm(prev => ({
-                ...prev,
-                images: prev.images.slice(1) // Remove first image (main)
-              }));
-            }
-            
-            toast({ title: "Image Removed", description: "Main image has been removed" });
-          }}
-          className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1 hover:bg-destructive/80 transition-colors"
-        >
-          <X className="h-3 w-3" />
-        </button>
-      </div>
-    ) : null}
-    
-    {/* Upload button - only show if we have less than 10 images total and no main image set */}
-    {(!allDisplayImages[0] || allDisplayImages[0] === '') && (
-      <label className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-secondary/30 transition-colors">
-        <ImageIcon className="h-6 w-6 text-muted-foreground" />
-        <span className="text-xs text-muted-foreground">Upload Main</span>
-        <input type="file" accept="image/*" className="hidden" onChange={(e) => {
-          if (e.target.files?.[0]) {
-            setImageFile(e.target.files[0]);
-          }
-          e.target.value = '';
-        }} />
-      </label>
-    )}
-  </div>
-</div>
+            <label className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-secondary/30 transition-colors">
+              <ImageIcon className="h-6 w-6 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Upload Main</span>
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    handleMainImageSelect(e.target.files[0]);
+                  }
+                  e.target.value = '';
+                }} 
+              />
+            </label>
+          </div>
+        </div>
 
         {/* Gallery Images Upload */}
-       {/* Gallery Images Upload */}
-<div className="space-y-2">
-  <Label>Gallery Images (Up to 9 additional images)</Label>
-  <div className="flex flex-wrap gap-3">
-    {allDisplayImages.slice(1, 10).map((img, idx) => {
-      // Determine if this is a new uploaded image or existing one
-      const isNewImage = localPreviewImages.includes(img);
-      const newImageIndex = localPreviewImages.indexOf(img);
-      
-      return (
-        <div key={`gallery-${idx}-${Date.now()}`} className="relative">
-          <img src={img} alt={`Gallery ${idx + 1}`} className="w-20 h-20 object-cover rounded-lg border" />
-          <button
-            type="button"
-            onClick={() => {
-              if (isNewImage && newImageIndex !== -1) {
-                // Remove from local preview images
-                setLocalPreviewImages(prev => prev.filter((_, i) => i !== newImageIndex));
-                // Also remove from galleryFiles
-                setGalleryFiles(prev => prev.filter((_, i) => i !== newImageIndex));
-              } else {
-                // Remove existing image from form.images
-                // The actual index in form.images (accounting for main image at index 0)
-                const actualImageIndex = idx + 1;
-                setForm(prev => ({
-                  ...prev,
-                  images: prev.images.filter((_, i) => i !== actualImageIndex)
-                }));
-              }
-            }}
-            className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1 hover:bg-destructive/80 transition-colors"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </div>
-      );
-    })}
-    {(allDisplayImages.length) < 10 && (
-      <label className="flex flex-col items-center justify-center w-20 h-20 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-secondary/30 transition-colors">
-        <Plus className="h-5 w-5 text-muted-foreground" />
-        <span className="text-xs text-muted-foreground">Add</span>
-        <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => {
-          if (e.target.files && e.target.files.length > 0) {
-            const newFiles = Array.from(e.target.files);
-            setGalleryFiles(prev => [...prev, ...newFiles]);
+        <div className="space-y-2">
+          <Label>Gallery Images (Up to 9 additional images)</Label>
+          <div className="flex flex-wrap gap-3">
+            {displayImages.slice(1, 10).map((img, idx) => {
+              const isNewPreview = galleryImagePreviews.includes(img);
+              
+              return (
+                <div key={`gallery-${idx}-${Date.now()}`} className="relative">
+                  <img 
+                    src={img} 
+                    alt={`Gallery ${idx + 1}`} 
+                    className="w-20 h-20 object-cover rounded-lg border" 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeGalleryImage(idx, img)}
+                    className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1 hover:bg-destructive/80 transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                  {isNewPreview && (
+                    <span className="absolute bottom-0 left-0 right-0 bg-blue-500 text-white text-[8px] text-center py-0.5 rounded-b-lg">
+                      New
+                    </span>
+                  )}
+                </div>
+              );
+            })}
             
-            newFiles.forEach(file => {
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                setLocalPreviewImages(prev => [...prev, reader.result as string]);
-              };
-              reader.readAsDataURL(file);
-            });
-          }
-          e.target.value = '';
-        }} />
-      </label>
-    )}
-  </div>
-  <p className="text-xs text-muted-foreground">You can upload up to 10 images total (1 main + 9 gallery).</p>
-</div>
+            {displayImages.length < 10 && (
+              <label className="flex flex-col items-center justify-center w-20 h-20 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-secondary/30 transition-colors">
+                <Plus className="h-5 w-5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Add</span>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  multiple 
+                  className="hidden" 
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      handleGalleryImageSelect(e.target.files);
+                    }
+                    e.target.value = '';
+                  }} 
+                />
+              </label>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {displayImages.length}/10 images used
+          </p>
+          {isEdit && removedImagePublicIds.length > 0 && (
+            <p className="text-xs text-amber-600">
+              ⚠️ {removedImagePublicIds.length} image(s) will be permanently deleted on save
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Video Upload Section */}
@@ -1125,17 +1197,21 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
   if (!product) return null;
 
   const getAllImages = () => {
-    const images: string[] = [];
-    if (product.mainImage?.url && product.mainImage.url !== '') images.push(product.mainImage.url);
+    const images = new Set<string>();
+    if (product.mainImage?.url && product.mainImage.url !== '') images.add(product.mainImage.url);
     if (product.galleryImages) {
       product.galleryImages.forEach(img => {
-        if (img.url && img.url !== '') images.push(img.url);
+        if (img.url && img.url !== '') images.add(img.url);
       });
     }
     if (product.images && product.images.length > 0) {
-      images.push(...product.images.filter(img => img !== ''));
+      product.images.forEach(img => {
+        if (img && img !== '') images.add(img);
+      });
     }
-    return images.length > 0 ? images : ['data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="1"%3E%3Crect x="3" y="3" width="18" height="18" rx="2"%3E%3C/rect%3E%3Ccircle cx="8.5" cy="8.5" r="1.5"%3E%3C/circle%3E%3Cpolyline points="21 15 16 10 5 21"%3E%3C/polyline%3E%3C/svg%3E'];
+    return images.size > 0 
+      ? Array.from(images) 
+      : ['data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="1"%3E%3Crect x="3" y="3" width="18" height="18" rx="2"%3E%3C/rect%3E%3Ccircle cx="8.5" cy="8.5" r="1.5"%3E%3C/circle%3E%3Cpolyline points="21 15 16 10 5 21"%3E%3C/polyline%3E%3C/svg%3E'];
   };
 
   const nextImage = () => {
@@ -1185,7 +1261,7 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
   const images = getAllImages();
 
   return (
-   <Dialog open={!!product} onOpenChange={onClose}>
+    <Dialog open={!!product} onOpenChange={onClose}>
       <DialogContent 
         className="max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl p-0"
         aria-describedby="product-dialog-description"
@@ -1411,7 +1487,7 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
                     <div className="flex gap-2 flex-wrap">
                       {product.tags.map(tag => (
                         <Badge key={tag} className={`${tagColors[tag] || "bg-muted"} rounded-full px-3 py-1`}>
-                          {tag}
+                          {tagDisplayNames[tag] || tag}
                         </Badge>
                       ))}
                     </div>
@@ -1592,6 +1668,9 @@ export default function ProductsPage() {
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [isInitialFetch, setIsInitialFetch] = useState(true);
+
+  const fetchRef = useRef(false);
 
   const fetchCategories = async () => {
     try {
@@ -1605,12 +1684,21 @@ export default function ProductsPage() {
     }
   };
 
-  useEffect(() => {
-    fetchProducts();
-    fetchCategories();
-  }, []);
+  const deduplicateProducts = (productsArray: Product[]): Product[] => {
+    const uniqueMap = new Map();
+    productsArray.forEach(product => {
+      const id = product._id || product.id;
+      if (id && !uniqueMap.has(id)) {
+        uniqueMap.set(id, product);
+      }
+    });
+    return Array.from(uniqueMap.values());
+  };
 
   const fetchProducts = async () => {
+    if (fetchRef.current) return;
+    fetchRef.current = true;
+    
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/products`);
@@ -1635,16 +1723,30 @@ export default function ProductsPage() {
         productsArray = [];
       }
       
-      setProducts(productsArray);
+      const uniqueProducts = deduplicateProducts(productsArray);
+      setProducts(uniqueProducts);
+      
     } catch (error) {
       console.error("Error fetching products:", error);
       setProducts([]);
     } finally {
       setLoading(false);
+      setIsInitialFetch(false);
+      setTimeout(() => {
+        fetchRef.current = false;
+      }, 500);
     }
   };
 
-  // ========== ADD PRODUCT WITH CLOUDINARY ==========
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+    
+    return () => {
+      fetchRef.current = false;
+    };
+  }, []);
+
   const addProductToAPI = async (productData: any) => {
     if (submitting) return;
     
@@ -1723,16 +1825,27 @@ export default function ProductsPage() {
       const result = await response.json();
       const newProduct = result.product || result;
       
-      setProducts(prev => [...prev, newProduct]);
-      
-      // ✅ SEND NOTIFICATION FOR NEW PRODUCT
-      await notificationApi.sendNotification({
-        type: 'system',
-        title: '✨ New Product Added',
-        message: `${newProduct.name} has been added to inventory.`,
-        priority: 'medium',
-        actionLink: `/products/${newProduct._id || newProduct.id}`
+      setProducts(prev => {
+        const exists = prev.some(p => (p._id === newProduct._id || p.id === newProduct.id));
+        if (exists) return prev;
+        return [...prev, newProduct];
       });
+      
+      // Silent notification
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          await notificationApi.sendNotification({
+            type: 'system',
+            title: '✨ New Product Added',
+            message: `${newProduct.name} has been added to inventory.`,
+            priority: 'medium',
+            actionLink: `/products/${newProduct._id || newProduct.id}`
+          });
+        }
+      } catch (notifError) {
+        console.log('Notification skipped');
+      }
       
       toast({ title: "Success!", description: "Product added successfully!" });
       return newProduct;
@@ -1750,15 +1863,24 @@ export default function ProductsPage() {
     }
   };
 
-  // ========== UPDATE PRODUCT WITH CLOUDINARY ==========
-  const updateProductInAPI = async (id: string, updates: Partial<Product>, imageFile?: File, galleryFiles?: File[], videoFile?: File) => {
+  const updateProductInAPI = async (id: string, updates: any, imageFile?: File, galleryFiles?: File[], videoFile?: File) => {
     if (submitting) return;
     
     setSubmitting(true);
     try {
       const formData = new FormData();
       
-      formData.append('productData', JSON.stringify(updates));
+      const updateData = {
+        ...updates,
+        images: updates.keptImages || [],
+        existingMainImage: updates.existingMainImage,
+        existingGalleryImages: updates.existingGalleryImages || [],
+        removedImagePublicIds: updates.removedImagePublicIds || [],
+      };
+      
+      delete updateData.keptImages;
+      
+      formData.append('productData', JSON.stringify(updateData));
       
       if (imageFile) {
         formData.append('mainImage', imageFile);
@@ -1787,18 +1909,31 @@ export default function ProductsPage() {
       const result = await response.json();
       const updatedProduct = result.product || result;
       
-      setProducts(prev => prev.map(p => (p._id === id || p.id === id) ? updatedProduct : p));
+      setProducts(prev => prev.map(p => {
+        const pId = p._id || p.id;
+        const updatedId = updatedProduct._id || updatedProduct.id;
+        return pId === updatedId ? updatedProduct : p;
+      }));
       
-      // ✅ SEND NOTIFICATION FOR PRODUCT UPDATE
-      await notificationApi.sendNotification({
-        type: 'system',
-        title: '✏️ Product Updated',
-        message: `${updatedProduct.name} details have been updated.`,
-        priority: 'low',
-        actionLink: `/products/${id}`
-      });
+      // Silent notification
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          await notificationApi.sendNotification({
+            type: 'system',
+            title: '✏️ Product Updated',
+            message: `${updatedProduct.name} details have been updated.`,
+            priority: 'low',
+            actionLink: `/products/${id}`
+          });
+        }
+      } catch (notifError) {
+        console.log('Notification skipped');
+      }
       
       toast({ title: "Success!", description: "Product updated successfully" });
+      return updatedProduct;
+      
     } catch (error) {
       console.error("Error updating product:", error);
       toast({ 
@@ -1812,36 +1947,61 @@ export default function ProductsPage() {
     }
   };
 
-  // ========== DELETE PRODUCT ==========
+  // ========== FIXED DELETE FUNCTION ==========
   const deleteProductFromAPI = async (id: string) => {
     try {
-      // Get product name before deleting
+      // Find product before deleting
       const productToDelete = products.find(p => (p._id === id || p.id === id));
       const productName = productToDelete?.name || "Product";
       
+      console.log(`🗑️ Deleting product: ${productName} (${id})`);
+      
       const response = await fetch(`${API_BASE_URL}/products/${id}`, {
         method: "DELETE",
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
+
+      console.log(`📡 Response status: ${response.status}`);
+      
+      const responseData = await response.json();
+      console.log(`📡 Response data:`, responseData);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to delete product");
+        throw new Error(responseData.message || "Failed to delete product");
       }
 
-      setProducts(prev => prev.filter(p => p._id !== id && p.id !== id));
-      
-      // ✅ SEND NOTIFICATION FOR PRODUCT DELETION
-      await notificationApi.sendNotification({
-        type: 'system',
-        title: '🗑️ Product Deleted',
-        message: `${productName} has been deleted from inventory.`,
-        priority: 'low',
-        actionLink: '/products'
+      // ✅ CRITICAL FIX: Update state by filtering out the deleted product
+      setProducts(prev => {
+        const newProducts = prev.filter(p => p._id !== id && p.id !== id);
+        console.log(`📊 Products after deletion: ${newProducts.length}`);
+        return newProducts;
       });
       
-      toast({ title: "Success", description: "Product deleted successfully" });
+      toast({ 
+        title: "Success", 
+        description: responseData.message || "Product deleted successfully" 
+      });
+      
+      // Silent notification
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          await notificationApi.sendNotification({
+            type: 'system',
+            title: '🗑️ Product Deleted',
+            message: `${productName} has been deleted from inventory.`,
+            priority: 'low',
+            actionLink: '/products'
+          });
+        }
+      } catch (notifError) {
+        console.log('Notification skipped');
+      }
+      
     } catch (error) {
-      console.error("Error deleting product:", error);
+      console.error("❌ Error deleting product:", error);
       toast({ 
         title: "Error", 
         description: error instanceof Error ? error.message : "Failed to delete product", 
@@ -1850,10 +2010,8 @@ export default function ProductsPage() {
     }
   };
 
-  // ========== UPDATE STOCK ==========
   const updateStockInAPI = async (id: string, newStock: number) => {
     try {
-      // Get old product data first
       const oldProduct = products.find(p => (p._id === id || p.id === id));
       const oldStock = oldProduct?.stock || 0;
       const productName = oldProduct?.name || "Product";
@@ -1874,38 +2032,55 @@ export default function ProductsPage() {
       
       setProducts(prev => prev.map(p => (p._id === id || p.id === id) ? updatedProduct : p));
       
-      // ✅ SEND NOTIFICATION FOR STOCK CHANGE
       if (newStock === 0 && oldStock > 0) {
-        // Out of stock
-        await notificationApi.sendNotification({
-          type: 'out_of_stock',
-          title: '🚫 Product Out of Stock',
-          message: `${productName} is now out of stock. Please restock soon.`,
-          priority: 'urgent',
-          actionLink: `/products/${id}`
-        });
+        try {
+          const token = localStorage.getItem('token');
+          if (token) {
+            await notificationApi.sendNotification({
+              type: 'out_of_stock',
+              title: '🚫 Product Out of Stock',
+              message: `${productName} is now out of stock. Please restock soon.`,
+              priority: 'urgent',
+              actionLink: `/products/${id}`
+            });
+          }
+        } catch (notifError) {
+          console.log('Notification skipped');
+        }
         toast({ title: "Stock Updated", description: `${productName} is now OUT OF STOCK!`, variant: "destructive" });
       } 
       else if (newStock < 10 && newStock > 0 && oldStock >= 10) {
-        // Low stock alert
-        await notificationApi.sendNotification({
-          type: 'low_stock',
-          title: '⚠️ Low Stock Alert',
-          message: `${productName} is running low. Only ${newStock} units left.`,
-          priority: 'high',
-    actionLink: `/products/${id}`
-        });
+        try {
+          const token = localStorage.getItem('token');
+          if (token) {
+            await notificationApi.sendNotification({
+              type: 'low_stock',
+              title: '⚠️ Low Stock Alert',
+              message: `${productName} is running low. Only ${newStock} units left.`,
+              priority: 'high',
+              actionLink: `/products/${id}`
+            });
+          }
+        } catch (notifError) {
+          console.log('Notification skipped');
+        }
         toast({ title: "Low Stock Alert", description: `${productName} has only ${newStock} units left!`, variant: "default" });
       }
       else if (oldStock === 0 && newStock > 0) {
-        // Back in stock
-        await notificationApi.sendNotification({
-          type: 'back_in_stock',
-          title: '✅ Product Back in Stock',
-          message: `${productName} is back in stock. Quantity: ${newStock}`,
-          priority: 'medium',
-          actionLink: `/products/${id}`
-        });
+        try {
+          const token = localStorage.getItem('token');
+          if (token) {
+            await notificationApi.sendNotification({
+              type: 'back_in_stock',
+              title: '✅ Product Back in Stock',
+              message: `${productName} is back in stock. Quantity: ${newStock}`,
+              priority: 'medium',
+              actionLink: `/products/${id}`
+            });
+          }
+        } catch (notifError) {
+          console.log('Notification skipped');
+        }
         toast({ title: "Back in Stock", description: `${productName} is now back in stock!` });
       }
       else {
@@ -1922,7 +2097,6 @@ export default function ProductsPage() {
     }
   };
 
-  // ========== CSV BULK UPLOAD HANDLER ==========
   const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1938,13 +2112,13 @@ export default function ProductsPage() {
       let successCount = 0;
       let errorCount = 0;
       const errors: string[] = [];
+      const addedProducts: Product[] = [];
       
       for (let i = 1; i < lines.length; i++) {
         const values = parseCSVLine(lines[i]);
         if (values.length === 0 || !values[0]) continue;
         
         try {
-          // Map CSV columns to product fields
           const productData: any = {};
           
           headers.forEach((header, idx) => {
@@ -1953,10 +2127,8 @@ export default function ProductsPage() {
             }
           });
           
-          // Get category (required for SKU generation)
           const category = productData.category || "Rings";
           
-          // Auto-generate SKU if not provided
           let sku = productData.sku || "";
           if (!sku || sku.trim() === "") {
             try {
@@ -1968,7 +2140,6 @@ export default function ProductsPage() {
             }
           }
           
-          // Handle multiple images (support pipe-separated URLs)
           let imageUrls: string[] = [];
           if (productData.image_urls || productData.images) {
             const imagesStr = productData.image_urls || productData.images || "";
@@ -1977,19 +2148,14 @@ export default function ProductsPage() {
             imageUrls = [productData.image_url];
           }
           
-          // Handle tags (pipe-separated)
           const tags = productData.tags ? productData.tags.split("|").map((t: string) => t.trim()) : [];
-          
-          // Handle ring sizes (pipe-separated)
           const ringSizes = productData.ring_sizes ? productData.ring_sizes.split("|").map((s: string) => s.trim()) : [];
           
-          // Handle care instructions - use default if not provided
           let careInstructions = DEFAULT_CARE_INSTRUCTIONS;
           if (productData.care_instructions && productData.care_instructions.trim() !== "") {
             careInstructions = productData.care_instructions.split("|").map((i: string) => i.trim());
           }
           
-          // Prepare the product data
           const apiProductData = {
             name: productData.name || "",
             price: parseFloat(productData.price) || 0,
@@ -2036,7 +2202,6 @@ export default function ProductsPage() {
           const formData = new FormData();
           formData.append('productData', JSON.stringify(apiProductData));
           
-          // If there are image URLs, add them to the product data
           if (imageUrls.length > 0) {
             formData.append('imageUrls', JSON.stringify(imageUrls));
           }
@@ -2053,10 +2218,12 @@ export default function ProductsPage() {
           
           const result = await response.json();
           const newProduct = result.product || result;
-          setProducts(prev => [...prev, newProduct]);
-          successCount++;
           
-          // Add a small delay to avoid overwhelming the server
+          if (!addedProducts.some(p => p._id === newProduct._id || p.id === newProduct.id)) {
+            addedProducts.push(newProduct);
+          }
+          
+          successCount++;
           await new Promise(resolve => setTimeout(resolve, 100));
           
         } catch (err) {
@@ -2066,18 +2233,33 @@ export default function ProductsPage() {
         }
       }
       
+      setProducts(prev => {
+        const existingIds = new Set(prev.map(p => p._id || p.id));
+        const newProducts = addedProducts.filter(p => {
+          const id = p._id || p.id;
+          return id && !existingIds.has(id);
+        });
+        return [...prev, ...newProducts];
+      });
+      
       setSubmitting(false);
       setBulkOpen(false);
       
-      // ✅ SEND BULK UPLOAD NOTIFICATION
       if (successCount > 0) {
-        await notificationApi.sendNotification({
-          type: 'system',
-          title: '📦 Bulk Upload Complete',
-          message: `${successCount} products have been added via bulk upload.`,
-          priority: 'low',
-          actionLink: '/products'
-        });
+        try {
+          const token = localStorage.getItem('token');
+          if (token) {
+            await notificationApi.sendNotification({
+              type: 'system',
+              title: '📦 Bulk Upload Complete',
+              message: `${successCount} products have been added via bulk upload.`,
+              priority: 'low',
+              actionLink: '/products'
+            });
+          }
+        } catch (notifError) {
+          console.log('Notification skipped');
+        }
       }
       
       if (errors.length > 0) {
@@ -2095,13 +2277,12 @@ export default function ProductsPage() {
         });
       }
       
-      fetchProducts(); // Refresh the product list
+      fetchProducts();
     };
     
     reader.readAsText(file);
   };
 
-  // Updated download template function with more columns
   const downloadTemplate = () => {
     const headers = [
       "name",
@@ -2111,17 +2292,17 @@ export default function ProductsPage() {
       "brand",
       "stock",
       "description",
-      "image_urls",  // Multiple URLs separated by |
+      "image_urls",
       "weight",
       "purity",
-      "sku",  // Optional - will auto-generate if empty
+      "sku",
       "material",
       "finish",
       "hallmark",
-      "tags",  // Pipe-separated: Best Seller|New Arrival
+      "tags",
       "certification",
-      "ring_sizes",  // Pipe-separated: 5|6|7|8
-      "care_instructions",  // Pipe-separated (leave empty to use defaults)
+      "ring_sizes",
+      "care_instructions",
       "delivery",
       "returns",
       "payment",
@@ -2130,7 +2311,7 @@ export default function ProductsPage() {
       "stone_type",
       "stone_weight",
       "warranty",
-      "status",  // Draft, Published, Archived
+      "status",
       "rating",
       "review_count"
     ];
@@ -2146,14 +2327,14 @@ export default function ProductsPage() {
       "https://example.com/image1.jpg|https://example.com/image2.jpg|https://example.com/image3.jpg",
       "12",
       "22K",
-      "",  // Empty SKU will auto-generate
+      "",
       "18K Gold",
       "High Polish",
       "BIS Hallmarked",
       "Best Seller|New Arrival",
       "IGI Certified",
       "5|6|7|8|9|10",
-      "",  // Leave empty to use default care instructions
+      "",
       "3-5 Days",
       "7 Days Return",
       "Secure Payment",
@@ -2205,7 +2386,7 @@ export default function ProductsPage() {
     if (!editProduct) return;
     const productId = editProduct._id || editProduct.id;
     
-    const updates: Partial<Product> = {
+    const updates: any = {
       name: formData.name,
       price: formData.price,
       purchasePrice: formData.purchasePrice,
@@ -2216,6 +2397,10 @@ export default function ProductsPage() {
       brand: "JewelsKart Original",
       status: formData.status,
       sku: formData.sku,
+      keptImages: formData.keptImages || [],
+      existingMainImage: formData.existingMainImage,
+      existingGalleryImages: formData.existingGalleryImages || [],
+      removedImagePublicIds: formData.removedImagePublicIds || [],
       specifications: {
         material: formData.material,
         finish: formData.finish,
@@ -2251,7 +2436,13 @@ export default function ProductsPage() {
     }
     
     try {
-      await updateProductInAPI(productId!, updates, formData.imageFile, formData.galleryFiles, formData.videoFile);
+      await updateProductInAPI(
+        productId!, 
+        updates, 
+        formData.imageFile, 
+        formData.galleryFiles, 
+        formData.videoFile
+      );
       setEditProduct(null);
     } catch (error) {
       // Error already handled
@@ -2259,8 +2450,23 @@ export default function ProductsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this product?")) {
+    if (!id) {
+      toast({ 
+        title: "Error", 
+        description: "Invalid product ID", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    const productToDelete = products.find(p => (p._id === id || p.id === id));
+    const productName = productToDelete?.name || "this product";
+    
+    if (window.confirm(`Are you sure you want to delete "${productName}"?`)) {
+      console.log(`🗑️ User confirmed deletion of: ${productName}`);
       await deleteProductFromAPI(id);
+    } else {
+      console.log('ℹ️ User cancelled deletion');
     }
   };
 
@@ -2451,9 +2657,10 @@ export default function ProductsPage() {
         {filtered.map((product) => {
           const imageUrl = getProductImage(product);
           const hasValidImage = imageUrl && !imageUrl.includes('data:image/svg+xml');
+          const productId = product._id || product.id;
           
           return (
-            <Card key={product._id || product.id} className="border-border/20 overflow-hidden hover:border-primary/20 transition-all duration-300">
+            <Card key={productId} className="border-border/20 overflow-hidden hover:border-primary/20 transition-all duration-300">
               <CardContent className="p-0">
                 <div className="flex flex-wrap items-center justify-between p-5 gap-4">
                   <div className="flex items-center gap-4 min-w-[200px]">
@@ -2529,7 +2736,7 @@ export default function ProductsPage() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => handleStockChange(product._id || product.id!, 1)} 
+                      onClick={() => handleStockChange(productId!, 1)} 
                       className="h-9 w-9 rounded-xl text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all duration-200" 
                       title="Add Stock"
                     >
@@ -2539,7 +2746,7 @@ export default function ProductsPage() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => handleStockChange(product._id || product.id!, -1)} 
+                      onClick={() => handleStockChange(productId!, -1)} 
                       className="h-9 w-9 rounded-xl text-amber-600 hover:bg-amber-600 hover:text-white transition-all duration-200" 
                       title="Remove Stock"
                     >
@@ -2549,7 +2756,7 @@ export default function ProductsPage() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => handleDelete(product._id || product.id!)} 
+                      onClick={() => handleDelete(productId!)} 
                       className="h-9 w-9 rounded-xl text-destructive hover:bg-destructive hover:text-white transition-all duration-200" 
                       title="Delete Product"
                     >

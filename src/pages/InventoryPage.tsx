@@ -27,6 +27,14 @@ const statusColors: Record<string, string> = {
   "Out of Stock": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
 
+const tagDisplayNames: Record<string, string> = {
+  "signature": "Signature",
+  "jewellery": "Jewellery",
+  "limited-edition": "Limited Edition",
+  "bestseller": "Bestseller",
+  "premium-pick": "Premium Pick"
+};
+
 // Helper function for stock status
 const getStockStatus = (stock: number): "In Stock" | "Low Stock" | "Out of Stock" => {
   if (stock === 0) return "Out of Stock";
@@ -393,7 +401,7 @@ const InventoryViewDialog = ({
                       <div className="flex gap-2 flex-wrap">
                         {item.tags.map(tag => (
                           <span key={tag} className="text-xs px-3 py-1.5 rounded-full bg-muted">
-                            {tag}
+                            {tagDisplayNames[tag] || tag}
                           </span>
                         ))}
                       </div>
