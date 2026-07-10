@@ -7,11 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Plus, Search, Eye, Edit, Trash2, PlusCircle, MinusCircle, Upload, Download, FileUp, Gem, X, 
-  Image as ImageIcon, ChevronLeft, ChevronRight, ZoomIn, Star, Package, 
+import {
+  Plus, Search, Eye, Edit, Trash2, PlusCircle, MinusCircle, Upload, Download, FileUp, Gem, X,
+  Image as ImageIcon, ChevronLeft, ChevronRight, ZoomIn, Star, Package,
   IndianRupee, Tag, Info, Award, Shield, Truck, Clock,
-  AlertTriangle, XCircle, Weight, Sparkles, HeartHandshake, 
+  AlertTriangle, XCircle, Weight, Sparkles, HeartHandshake,
   BadgeCheck, GemIcon, Medal, ClipboardList, Layers, RefreshCw, FolderTree,
   DollarSign, Scale, Calendar, Hash, User, Gift, Home, ShieldCheck, RotateCcw, CreditCard,
   CheckCircle2, CalendarDays, MapPin, Phone, Mail, Copy, Check, Loader2, Video, Bell
@@ -174,10 +174,10 @@ const parseCSVLine = (line: string): string[] => {
   const result: string[] = [];
   let current = "";
   let inQuotes = false;
-  
+
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
-    
+
     if (char === '"') {
       inQuotes = !inQuotes;
     } else if (char === ',' && !inQuotes) {
@@ -187,23 +187,23 @@ const parseCSVLine = (line: string): string[] => {
       current += char;
     }
   }
-  
+
   result.push(current.trim());
   return result;
 };
 
 // ========== PRODUCT FORM COMPONENT ==========
-const ProductForm = ({ 
-  product, 
-  onSubmit, 
-  onCancel, 
+const ProductForm = ({
+  product,
+  onSubmit,
+  onCancel,
   isEdit = false,
   categories = [],
   loading = false
-}: { 
-  product?: Product; 
-  onSubmit: (data: any) => void; 
-  onCancel: () => void; 
+}: {
+  product?: Product;
+  onSubmit: (data: any) => void;
+  onCancel: () => void;
   isEdit?: boolean;
   categories?: Category[];
   loading?: boolean;
@@ -214,11 +214,11 @@ const ProductForm = ({
   const [existingVideo, setExistingVideo] = useState<string | null>(product?.productVideo?.url || null);
   const [generatingSku, setGeneratingSku] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Separate state for preview images
   const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
   const [galleryImagePreviews, setGalleryImagePreviews] = useState<string[]>([]);
-  
+
   // Track removed images for edit mode
   const [removedImagePublicIds, setRemovedImagePublicIds] = useState<string[]>([]);
   const [removedImageUrls, setRemovedImageUrls] = useState<string[]>([]);
@@ -227,7 +227,7 @@ const ProductForm = ({
   const getInitialImages = () => {
     const mainImg = product?.mainImage?.url || (product?.images && product.images[0]) || null;
     const galleryMap = new Map<string, GalleryImage>();
-    
+
     if (product?.galleryImages) {
       product.galleryImages.forEach(img => {
         if (img.url && img.url !== mainImg && img.url !== '') {
@@ -235,7 +235,7 @@ const ProductForm = ({
         }
       });
     }
-    
+
     if (product?.images) {
       product.images.forEach(url => {
         if (url && url !== mainImg && url !== '' && !galleryMap.has(url)) {
@@ -243,7 +243,7 @@ const ProductForm = ({
         }
       });
     }
-    
+
     return {
       main: mainImg,
       gallery: Array.from(galleryMap.values())
@@ -253,7 +253,7 @@ const ProductForm = ({
   const initialImages = getInitialImages();
   const [existingMainImage, setExistingMainImage] = useState<string | null>(initialImages.main);
   const [existingGalleryImages, setExistingGalleryImages] = useState<GalleryImage[]>(initialImages.gallery);
-  
+
   const getCategoryName = (cat: string | Category | undefined): string => {
     if (!cat) return "";
     if (typeof cat === "string") return cat;
@@ -274,7 +274,7 @@ const ProductForm = ({
     tags: product?.tags || [] as string[],
     status: product?.status || "Draft",
     sku: product?.sku || "",
-    
+
     material: product?.specifications?.material || "18K Gold",
     ringSizes: Array.isArray(product?.specifications?.ringSizes) ? product.specifications.ringSizes : [],
     finish: product?.specifications?.finish || "High Polish",
@@ -285,31 +285,31 @@ const ProductForm = ({
     stoneType: product?.specifications?.stoneType || "Diamond",
     stoneWeight: product?.specifications?.stoneWeight?.toString() || "",
     warranty: product?.specifications?.warranty || "1 Year Manufacturing Warranty",
-    
+
     careInstructions: product?.careInstructions?.instructions || DEFAULT_CARE_INSTRUCTIONS,
-    
+
     delivery: product?.additionalInfo?.delivery || "3-5 Days",
     returns: product?.additionalInfo?.returns || "7 Days Return Policy",
     payment: product?.additionalInfo?.payment || "Secure Payment Options Available",
-    
+
     reviewRating: product?.reviews?.rating?.toString() || "4.5",
     reviewCount: product?.reviews?.count?.toString() || "0",
   });
 
   const generateSkuFromBackend = async (category: string) => {
     if (!category || isEdit) return;
-    
+
     setGeneratingSku(true);
     try {
       const response = await fetch(`${API_BASE_URL}/products/next-sku/${encodeURIComponent(category)}`);
-      
+
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         throw new Error("Backend returned non-JSON response");
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success && data.sku) {
         setForm(prev => ({ ...prev, sku: data.sku }));
         toast({ title: "SKU Generated", description: `SKU: ${data.sku}`, variant: "default" });
@@ -358,10 +358,10 @@ const ProductForm = ({
   // Handle gallery image selection with immediate previews
   const handleGalleryImageSelect = (files: FileList | null) => {
     if (!files) return;
-    
+
     const newFiles = Array.from(files);
     const uniqueNewFiles: File[] = [];
-    
+
     newFiles.forEach(file => {
       // Avoid duplicate files based on name and size
       const isDuplicateFile = galleryFiles.some(f => f.name === file.name && f.size === file.size);
@@ -373,7 +373,7 @@ const ProductForm = ({
     if (uniqueNewFiles.length === 0) return;
 
     setGalleryFiles(prev => [...prev, ...uniqueNewFiles]);
-    
+
     uniqueNewFiles.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -408,7 +408,7 @@ const ProductForm = ({
   const removeGalleryImage = (index: number, url: string) => {
     const isNewPreview = galleryImagePreviews.includes(url);
     const newImageIndex = galleryImagePreviews.indexOf(url);
-    
+
     if (isNewPreview && newImageIndex !== -1) {
       setGalleryImagePreviews(prev => prev.filter((_, i) => i !== newImageIndex));
       setGalleryFiles(prev => prev.filter((_, i) => i !== newImageIndex));
@@ -452,29 +452,29 @@ const ProductForm = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (isSubmitting || loading) return;
-    
+
     if (!form.name) {
       toast({ title: "Error", description: "Product name is required", variant: "destructive" });
       return;
     }
-    
+
     if (!form.sku) {
       toast({ title: "Error", description: "SKU is required. Please wait for auto-generation or select a category.", variant: "destructive" });
       return;
     }
-    
+
     if (!form.category) {
       toast({ title: "Error", description: "Category is required", variant: "destructive" });
       return;
     }
-    
+
     if (!form.price || parseFloat(form.price) <= 0) {
       toast({ title: "Error", description: "Valid selling price is required", variant: "destructive" });
       return;
     }
-    
+
     setIsSubmitting(true);
 
     const keptImages: string[] = [];
@@ -484,7 +484,7 @@ const ProductForm = ({
     existingGalleryImages.forEach(img => {
       if (img.url) keptImages.push(img.url);
     });
-    
+
     const submitData = {
       ...form,
       price: parseFloat(form.price) || 0,
@@ -503,9 +503,9 @@ const ProductForm = ({
       existingGalleryImages: existingGalleryImages,
       removedImagePublicIds: removedImagePublicIds,
     };
-    
+
     onSubmit(submitData);
-    
+
     setTimeout(() => setIsSubmitting(false), 2000);
   };
 
@@ -528,24 +528,24 @@ const ProductForm = ({
           <Info className="h-5 w-5 text-primary" />
           Basic Information
         </h3>
-        
+
         <div className="space-y-2">
           <Label className="text-sm font-medium">Product Name *</Label>
-          <Input 
-            className="h-11 rounded-xl w-full" 
-            value={form.name} 
-            onChange={e => setForm({ ...form, name: e.target.value })} 
-            placeholder="Enter product name" 
+          <Input
+            className="h-11 rounded-xl w-full"
+            value={form.name}
+            onChange={e => setForm({ ...form, name: e.target.value })}
+            placeholder="Enter product name"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>SKU * {!isEdit && <span className="text-xs text-primary">(Auto-generated)</span>}</Label>
-            <Input 
-              className={`h-11 rounded-xl w-full ${!isEdit ? 'bg-muted/30 font-mono' : ''}`} 
-              value={form.sku} 
-              onChange={e => setForm({ ...form, sku: e.target.value })} 
+            <Input
+              className={`h-11 rounded-xl w-full ${!isEdit ? 'bg-muted/30 font-mono' : ''}`}
+              value={form.sku}
+              onChange={e => setForm({ ...form, sku: e.target.value })}
               placeholder={!isEdit ? "Will be auto-generated based on category" : "SKU"}
               readOnly={!isEdit}
               disabled={generatingSku}
@@ -559,8 +559,8 @@ const ProductForm = ({
           </div>
           <div className="space-y-2">
             <Label>Category *</Label>
-            <Select 
-              value={form.category} 
+            <Select
+              value={form.category}
               onValueChange={handleCategoryChange}
               disabled={isEdit}
             >
@@ -592,19 +592,19 @@ const ProductForm = ({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Brand</Label>
-            <Input 
-              className="h-11 rounded-xl w-full bg-muted/30" 
-              value="JewelsKart Original" 
+            <Input
+              className="h-11 rounded-xl w-full bg-muted/30"
+              value="JewelsKart Original"
               disabled
             />
           </div>
           <div className="space-y-2">
             <Label>Stock Quantity</Label>
-            <Input 
-              type="number" 
-              className="h-11 rounded-xl w-full" 
-              value={form.stock} 
-              onChange={e => setForm({ ...form, stock: e.target.value })} 
+            <Input
+              type="number"
+              className="h-11 rounded-xl w-full"
+              value={form.stock}
+              onChange={e => setForm({ ...form, stock: e.target.value })}
               placeholder="0"
             />
           </div>
@@ -628,15 +628,15 @@ const ProductForm = ({
           <Label>Tags</Label>
           <div className="flex gap-2 flex-wrap">
             {tagsList.map(tag => (
-              <Badge 
-                key={tag} 
-                variant={form.tags.includes(tag) ? "default" : "outline"} 
+              <Badge
+                key={tag}
+                variant={form.tags.includes(tag) ? "default" : "outline"}
                 className="cursor-pointer rounded-lg py-1.5 px-3 transition-all"
-                onClick={() => setForm({ 
-                  ...form, 
-                  tags: form.tags.includes(tag) 
-                    ? form.tags.filter(t => t !== tag) 
-                    : [...form.tags, tag] 
+                onClick={() => setForm({
+                  ...form,
+                  tags: form.tags.includes(tag)
+                    ? form.tags.filter(t => t !== tag)
+                    : [...form.tags, tag]
                 })}
               >
                 {tagDisplayNames[tag] || tag}
@@ -652,15 +652,15 @@ const ProductForm = ({
           <Gem className="h-5 w-5 text-primary" />
           Gold & Weight Details
         </h3>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Weight (grams)</Label>
-            <Input 
-              className="h-11 rounded-xl w-full" 
-              value={form.weight} 
-              onChange={e => setForm({ ...form, weight: e.target.value })} 
-              placeholder="e.g., 12g" 
+            <Input
+              className="h-11 rounded-xl w-full"
+              value={form.weight}
+              onChange={e => setForm({ ...form, weight: e.target.value })}
+              placeholder="e.g., 12g"
             />
           </div>
           <div className="space-y-2">
@@ -697,25 +697,25 @@ const ProductForm = ({
           <IndianRupee className="h-5 w-5 text-primary" />
           Pricing (Manual Entry)
         </h3>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Selling Price (₹) *</Label>
-            <Input 
+            <Input
               type="number"
-              className="h-11 rounded-xl w-full" 
-              value={form.price} 
-              onChange={e => setForm({ ...form, price: e.target.value })} 
+              className="h-11 rounded-xl w-full"
+              value={form.price}
+              onChange={e => setForm({ ...form, price: e.target.value })}
               placeholder="Enter selling price"
             />
           </div>
           <div className="space-y-2">
             <Label>Purchase Price (₹)</Label>
-            <Input 
+            <Input
               type="number"
-              className="h-11 rounded-xl w-full" 
-              value={form.purchasePrice} 
-              onChange={e => setForm({ ...form, purchasePrice: e.target.value })} 
+              className="h-11 rounded-xl w-full"
+              value={form.purchasePrice}
+              onChange={e => setForm({ ...form, purchasePrice: e.target.value })}
               placeholder="Enter purchase price"
             />
           </div>
@@ -729,7 +729,7 @@ const ProductForm = ({
             <Layers className="h-5 w-5 text-primary" />
             Ring Size
           </h3>
-          
+
           <div className="space-y-3">
             <Label>Available Ring Sizes</Label>
             <div className="flex flex-wrap gap-2">
@@ -738,11 +738,10 @@ const ProductForm = ({
                   key={size}
                   type="button"
                   onClick={() => handleRingSizeToggle(size)}
-                  className={`w-12 h-12 rounded-full font-medium transition-all ${
-                    form.ringSizes.includes(size)
-                      ? "bg-primary text-white shadow-md scale-105"
-                      : "bg-secondary hover:bg-secondary/80 text-foreground"
-                  }`}
+                  className={`w-12 h-12 rounded-full font-medium transition-all ${form.ringSizes.includes(size)
+                    ? "bg-primary text-white shadow-md scale-105"
+                    : "bg-secondary hover:bg-secondary/80 text-foreground"
+                    }`}
                 >
                   {size}
                 </button>
@@ -761,7 +760,7 @@ const ProductForm = ({
           <Award className="h-5 w-5 text-primary" />
           Specifications
         </h3>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Finish</Label>
@@ -836,11 +835,11 @@ const ProductForm = ({
           </div>
           <div className="space-y-2">
             <Label>Stone Weight (carats)</Label>
-            <Input 
-              className="h-11 rounded-xl w-full" 
-              value={form.stoneWeight} 
-              onChange={e => setForm({ ...form, stoneWeight: e.target.value })} 
-              placeholder="e.g., 0.5 ct" 
+            <Input
+              className="h-11 rounded-xl w-full"
+              value={form.stoneWeight}
+              onChange={e => setForm({ ...form, stoneWeight: e.target.value })}
+              placeholder="e.g., 0.5 ct"
             />
           </div>
         </div>
@@ -861,11 +860,11 @@ const ProductForm = ({
           </div>
           <div className="space-y-2">
             <Label>Warranty</Label>
-            <Input 
-              className="h-11 rounded-xl w-full" 
-              value={form.warranty} 
-              onChange={e => setForm({ ...form, warranty: e.target.value })} 
-              placeholder="e.g., 1 Year Manufacturing Warranty" 
+            <Input
+              className="h-11 rounded-xl w-full"
+              value={form.warranty}
+              onChange={e => setForm({ ...form, warranty: e.target.value })}
+              placeholder="e.g., 1 Year Manufacturing Warranty"
             />
           </div>
         </div>
@@ -877,13 +876,13 @@ const ProductForm = ({
           <HeartHandshake className="h-5 w-5 text-primary" />
           Care Instructions
         </h3>
-        
+
         <div className="space-y-3">
           {form.careInstructions.map((instruction, index) => (
             <div key={index} className="flex gap-2 items-start">
-              <Input 
-                className="flex-1 h-11 rounded-xl" 
-                value={instruction} 
+              <Input
+                className="flex-1 h-11 rounded-xl"
+                value={instruction}
                 onChange={e => handleCareInstructionChange(index, e.target.value)}
                 placeholder={`Instruction ${index + 1}`}
               />
@@ -916,35 +915,35 @@ const ProductForm = ({
           <ClipboardList className="h-5 w-5 text-primary" />
           Additional Information
         </h3>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Delivery Time</Label>
-            <Input 
-              className="h-11 rounded-xl w-full" 
-              value={form.delivery} 
-              onChange={e => setForm({ ...form, delivery: e.target.value })} 
-              placeholder="e.g., 3-5 Days" 
+            <Input
+              className="h-11 rounded-xl w-full"
+              value={form.delivery}
+              onChange={e => setForm({ ...form, delivery: e.target.value })}
+              placeholder="e.g., 3-5 Days"
             />
           </div>
           <div className="space-y-2">
             <Label>Return Policy</Label>
-            <Input 
-              className="h-11 rounded-xl w-full" 
-              value={form.returns} 
-              onChange={e => setForm({ ...form, returns: e.target.value })} 
-              placeholder="e.g., 7 Days Return" 
+            <Input
+              className="h-11 rounded-xl w-full"
+              value={form.returns}
+              onChange={e => setForm({ ...form, returns: e.target.value })}
+              placeholder="e.g., 7 Days Return"
             />
           </div>
         </div>
-        
+
         <div className="space-y-2">
           <Label>Payment Information</Label>
-          <Input 
-            className="h-11 rounded-xl w-full" 
-            value={form.payment} 
-            onChange={e => setForm({ ...form, payment: e.target.value })} 
-            placeholder="Payment options" 
+          <Input
+            className="h-11 rounded-xl w-full"
+            value={form.payment}
+            onChange={e => setForm({ ...form, payment: e.target.value })}
+            placeholder="Payment options"
           />
         </div>
       </div>
@@ -955,29 +954,29 @@ const ProductForm = ({
           <Star className="h-5 w-5 text-primary" />
           Reviews
         </h3>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Rating (out of 5)</Label>
-            <Input 
+            <Input
               type="number"
               step="0.1"
               min="0"
               max="5"
-              className="h-11 rounded-xl w-full" 
-              value={form.reviewRating} 
-              onChange={e => setForm({ ...form, reviewRating: e.target.value })} 
-              placeholder="e.g., 4.5" 
+              className="h-11 rounded-xl w-full"
+              value={form.reviewRating}
+              onChange={e => setForm({ ...form, reviewRating: e.target.value })}
+              placeholder="e.g., 4.5"
             />
           </div>
           <div className="space-y-2">
             <Label>Number of Reviews</Label>
-            <Input 
+            <Input
               type="number"
-              className="h-11 rounded-xl w-full" 
-              value={form.reviewCount} 
-              onChange={e => setForm({ ...form, reviewCount: e.target.value })} 
-              placeholder="e.g., 24" 
+              className="h-11 rounded-xl w-full"
+              value={form.reviewCount}
+              onChange={e => setForm({ ...form, reviewCount: e.target.value })}
+              placeholder="e.g., 24"
             />
           </div>
         </div>
@@ -989,17 +988,17 @@ const ProductForm = ({
           <ImageIcon className="h-5 w-5 text-primary" />
           Product Images (Max 10 Images)
         </h3>
-        
+
         {/* Main Image Upload */}
         <div className="space-y-2">
           <Label>Main Product Image *</Label>
           <div className="flex items-center gap-4 flex-wrap">
             {displayImages.length > 0 && displayImages[0] ? (
               <div className="relative">
-                <img 
-                  src={displayImages[0]} 
-                  alt="Main preview" 
-                  className="w-24 h-24 object-cover rounded-lg border" 
+                <img
+                  src={displayImages[0]}
+                  alt="Main preview"
+                  className="w-24 h-24 object-cover rounded-lg border"
                 />
                 <button
                   type="button"
@@ -1010,20 +1009,20 @@ const ProductForm = ({
                 </button>
               </div>
             ) : null}
-            
+
             <label className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-secondary/30 transition-colors">
               <ImageIcon className="h-6 w-6 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Upload Main</span>
-              <input 
-                type="file" 
-                accept="image/*" 
-                className="hidden" 
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
                 onChange={(e) => {
                   if (e.target.files?.[0]) {
                     handleMainImageSelect(e.target.files[0]);
                   }
                   e.target.value = '';
-                }} 
+                }}
               />
             </label>
           </div>
@@ -1035,13 +1034,13 @@ const ProductForm = ({
           <div className="flex flex-wrap gap-3">
             {displayImages.slice(1, 10).map((img, idx) => {
               const isNewPreview = galleryImagePreviews.includes(img);
-              
+
               return (
                 <div key={`gallery-${idx}-${Date.now()}`} className="relative">
-                  <img 
-                    src={img} 
-                    alt={`Gallery ${idx + 1}`} 
-                    className="w-20 h-20 object-cover rounded-lg border" 
+                  <img
+                    src={img}
+                    alt={`Gallery ${idx + 1}`}
+                    className="w-20 h-20 object-cover rounded-lg border"
                   />
                   <button
                     type="button"
@@ -1058,22 +1057,22 @@ const ProductForm = ({
                 </div>
               );
             })}
-            
+
             {displayImages.length < 10 && (
               <label className="flex flex-col items-center justify-center w-20 h-20 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-secondary/30 transition-colors">
                 <Plus className="h-5 w-5 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Add</span>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  multiple 
-                  className="hidden" 
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
                   onChange={(e) => {
                     if (e.target.files && e.target.files.length > 0) {
                       handleGalleryImageSelect(e.target.files);
                     }
                     e.target.value = '';
-                  }} 
+                  }}
                 />
               </label>
             )}
@@ -1095,14 +1094,14 @@ const ProductForm = ({
           <Video className="h-5 w-5 text-primary" />
           Product Video (Optional)
         </h3>
-        
+
         <div className="space-y-2">
           <Label>Product Video (MP4, MOV - Max 100MB)</Label>
           <div className="flex items-center gap-4 flex-wrap">
             {existingVideo ? (
               <div className="relative">
-                <video 
-                  src={existingVideo} 
+                <video
+                  src={existingVideo}
                   className="w-32 h-32 object-cover rounded-lg border"
                   controls
                 />
@@ -1119,8 +1118,8 @@ const ProductForm = ({
               </div>
             ) : videoFile ? (
               <div className="relative">
-                <video 
-                  src={URL.createObjectURL(videoFile)} 
+                <video
+                  src={URL.createObjectURL(videoFile)}
                   className="w-32 h-32 object-cover rounded-lg border"
                   controls
                 />
@@ -1133,22 +1132,22 @@ const ProductForm = ({
                 </button>
               </div>
             ) : null}
-            
+
             <label className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-secondary/30">
               <Video className="h-6 w-6 text-muted-foreground" />
               <span className="text-xs text-muted-foreground text-center mt-1">Upload Video</span>
               <span className="text-[10px] text-muted-foreground">MP4, MOV</span>
-              <input 
-                type="file" 
-                accept="video/*" 
-                className="hidden" 
+              <input
+                type="file"
+                accept="video/*"
+                className="hidden"
                 onChange={(e) => {
                   if (e.target.files?.[0]) {
                     setVideoFile(e.target.files[0]);
                     setExistingVideo(null);
                   }
                   e.target.value = '';
-                }} 
+                }}
               />
             </label>
           </div>
@@ -1162,13 +1161,13 @@ const ProductForm = ({
           <ClipboardList className="h-5 w-5 text-primary" />
           Product Description
         </h3>
-        
+
         <div className="space-y-2">
           <Label>Description</Label>
-          <Textarea 
-            className="rounded-xl min-h-[120px] w-full" 
-            value={form.description} 
-            onChange={e => setForm({ ...form, description: e.target.value })} 
+          <Textarea
+            className="rounded-xl min-h-[120px] w-full"
+            value={form.description}
+            onChange={e => setForm({ ...form, description: e.target.value })}
             placeholder="Enter detailed product description..."
           />
         </div>
@@ -1209,8 +1208,8 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
         if (img && img !== '') images.add(img);
       });
     }
-    return images.size > 0 
-      ? Array.from(images) 
+    return images.size > 0
+      ? Array.from(images)
       : ['data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="1"%3E%3Crect x="3" y="3" width="18" height="18" rx="2"%3E%3C/rect%3E%3Ccircle cx="8.5" cy="8.5" r="1.5"%3E%3C/circle%3E%3Cpolyline points="21 15 16 10 5 21"%3E%3C/polyline%3E%3C/svg%3E'];
   };
 
@@ -1229,8 +1228,8 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
     return product.category?.name || product.categoryName || "Uncategorized";
   };
 
-  const profitMargin = product.purchasePrice && product.price > 0 
-    ? ((product.price - product.purchasePrice) / product.price * 100).toFixed(1) 
+  const profitMargin = product.purchasePrice && product.price > 0
+    ? ((product.price - product.purchasePrice) / product.price * 100).toFixed(1)
     : "0";
   const profitAmount = product.price - (product.purchasePrice || 0);
   const goldWeight = product.goldDetails?.weight || 0;
@@ -1262,7 +1261,7 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
 
   return (
     <Dialog open={!!product} onOpenChange={onClose}>
-      <DialogContent 
+      <DialogContent
         className="max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl p-0"
         aria-describedby="product-dialog-description"
       >
@@ -1272,7 +1271,7 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
             Complete product information for management
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="grid md:grid-cols-[0.8fr_1.2fr] gap-0">
           {/* Left Column - Images */}
           <div className="p-4 bg-gradient-to-br from-secondary/20 to-secondary/5">
@@ -1286,7 +1285,7 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
                     onClick={() => setIsZoomed(true)}
                   />
                 </div>
-                
+
                 {images.length > 1 && (
                   <>
                     <button
@@ -1303,7 +1302,7 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
                     </button>
                   </>
                 )}
-                
+
                 <button
                   onClick={() => setIsZoomed(true)}
                   className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200"
@@ -1318,11 +1317,10 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
                     <button
                       key={idx}
                       onClick={() => setCurrentImageIndex(idx)}
-                      className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${
-                        currentImageIndex === idx 
-                          ? 'border-primary ring-2 ring-primary/20' 
-                          : 'border-transparent opacity-60 hover:opacity-100'
-                      }`}
+                      className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${currentImageIndex === idx
+                        ? 'border-primary ring-2 ring-primary/20'
+                        : 'border-transparent opacity-60 hover:opacity-100'
+                        }`}
                     >
                       <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
                     </button>
@@ -1351,8 +1349,8 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
                     onClick={() => copyToClipboard(product.sku, `sku-${product.id || product._id}`)}
                     className="p-0.5 hover:bg-primary/10 rounded transition-colors"
                   >
-                    {copiedId === `sku-${product.id || product._id}` ? 
-                      <Check className="w-3 h-3 text-green-500" /> : 
+                    {copiedId === `sku-${product.id || product._id}` ?
+                      <Check className="w-3 h-3 text-green-500" /> :
                       <Copy className="w-3 h-3 text-muted-foreground" />
                     }
                   </button>
@@ -1417,9 +1415,8 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-all relative whitespace-nowrap ${
-                  activeTab === tab.id ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-all relative whitespace-nowrap ${activeTab === tab.id ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                  }`}
               >
                 <tab.icon className="h-4 w-4" />
                 {tab.label}
@@ -1636,10 +1633,10 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
         <Dialog open={isZoomed} onOpenChange={setIsZoomed}>
           <DialogContent className="max-w-4xl p-0 bg-black/95 border-0">
             <div className="relative">
-              <img 
-                src={images[currentImageIndex]} 
-                alt={product.name} 
-                className="w-full h-auto max-h-[85vh] object-contain" 
+              <img
+                src={images[currentImageIndex]}
+                alt={product.name}
+                className="w-full h-auto max-h-[85vh] object-contain"
               />
               <Button
                 variant="ghost"
@@ -1698,22 +1695,22 @@ export default function ProductsPage() {
   const fetchProducts = async () => {
     if (fetchRef.current) return;
     fetchRef.current = true;
-    
+
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/products`);
-      
+
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         throw new Error("Backend returned non-JSON response");
       }
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       let productsArray = [];
       if (data.products && Array.isArray(data.products)) {
         productsArray = data.products;
@@ -1722,10 +1719,10 @@ export default function ProductsPage() {
       } else {
         productsArray = [];
       }
-      
+
       const uniqueProducts = deduplicateProducts(productsArray);
       setProducts(uniqueProducts);
-      
+
     } catch (error) {
       console.error("Error fetching products:", error);
       setProducts([]);
@@ -1741,7 +1738,7 @@ export default function ProductsPage() {
   useEffect(() => {
     fetchProducts();
     fetchCategories();
-    
+
     return () => {
       fetchRef.current = false;
     };
@@ -1749,11 +1746,11 @@ export default function ProductsPage() {
 
   const addProductToAPI = async (productData: any) => {
     if (submitting) return;
-    
+
     setSubmitting(true);
     try {
       const formData = new FormData();
-      
+
       const productToSend = {
         name: productData.name,
         price: productData.price,
@@ -1795,23 +1792,23 @@ export default function ProductsPage() {
           count: productData.reviewCount || 0,
         },
       };
-      
+
       formData.append('productData', JSON.stringify(productToSend));
-      
+
       if (productData.imageFile) {
         formData.append('mainImage', productData.imageFile);
       }
-      
+
       if (productData.galleryFiles && productData.galleryFiles.length > 0) {
         productData.galleryFiles.forEach((file: File) => {
           formData.append('galleryImages', file);
         });
       }
-      
+
       if (productData.videoFile) {
         formData.append('productVideo', productData.videoFile);
       }
-      
+
       const response = await fetch(`${API_BASE_URL}/products/add-with-images`, {
         method: "POST",
         body: formData,
@@ -1824,13 +1821,13 @@ export default function ProductsPage() {
 
       const result = await response.json();
       const newProduct = result.product || result;
-      
+
       setProducts(prev => {
         const exists = prev.some(p => (p._id === newProduct._id || p.id === newProduct.id));
         if (exists) return prev;
         return [...prev, newProduct];
       });
-      
+
       // Silent notification
       try {
         const token = localStorage.getItem('token');
@@ -1846,16 +1843,16 @@ export default function ProductsPage() {
       } catch (notifError) {
         console.log('Notification skipped');
       }
-      
+
       toast({ title: "Success!", description: "Product added successfully!" });
       return newProduct;
-      
+
     } catch (error) {
       console.error("Error adding product:", error);
-      toast({ 
-        title: "Error", 
-        description: error instanceof Error ? error.message : "Failed to add product", 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to add product",
+        variant: "destructive"
       });
       throw error;
     } finally {
@@ -1865,11 +1862,11 @@ export default function ProductsPage() {
 
   const updateProductInAPI = async (id: string, updates: any, imageFile?: File, galleryFiles?: File[], videoFile?: File) => {
     if (submitting) return;
-    
+
     setSubmitting(true);
     try {
       const formData = new FormData();
-      
+
       const updateData = {
         ...updates,
         images: updates.keptImages || [],
@@ -1877,25 +1874,25 @@ export default function ProductsPage() {
         existingGalleryImages: updates.existingGalleryImages || [],
         removedImagePublicIds: updates.removedImagePublicIds || [],
       };
-      
+
       delete updateData.keptImages;
-      
+
       formData.append('productData', JSON.stringify(updateData));
-      
+
       if (imageFile) {
         formData.append('mainImage', imageFile);
       }
-      
+
       if (galleryFiles && galleryFiles.length > 0) {
         galleryFiles.forEach((file: File) => {
           formData.append('galleryImages', file);
         });
       }
-      
+
       if (videoFile) {
         formData.append('productVideo', videoFile);
       }
-      
+
       const response = await fetch(`${API_BASE_URL}/products/${id}/with-images`, {
         method: "PUT",
         body: formData,
@@ -1908,13 +1905,13 @@ export default function ProductsPage() {
 
       const result = await response.json();
       const updatedProduct = result.product || result;
-      
+
       setProducts(prev => prev.map(p => {
         const pId = p._id || p.id;
         const updatedId = updatedProduct._id || updatedProduct.id;
         return pId === updatedId ? updatedProduct : p;
       }));
-      
+
       // Silent notification
       try {
         const token = localStorage.getItem('token');
@@ -1930,16 +1927,16 @@ export default function ProductsPage() {
       } catch (notifError) {
         console.log('Notification skipped');
       }
-      
+
       toast({ title: "Success!", description: "Product updated successfully" });
       return updatedProduct;
-      
+
     } catch (error) {
       console.error("Error updating product:", error);
-      toast({ 
-        title: "Error", 
-        description: error instanceof Error ? error.message : "Failed to update product", 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update product",
+        variant: "destructive"
       });
       throw error;
     } finally {
@@ -1953,9 +1950,9 @@ export default function ProductsPage() {
       // Find product before deleting
       const productToDelete = products.find(p => (p._id === id || p.id === id));
       const productName = productToDelete?.name || "Product";
-      
+
       console.log(`🗑️ Deleting product: ${productName} (${id})`);
-      
+
       const response = await fetch(`${API_BASE_URL}/products/${id}`, {
         method: "DELETE",
         headers: {
@@ -1964,7 +1961,7 @@ export default function ProductsPage() {
       });
 
       console.log(`📡 Response status: ${response.status}`);
-      
+
       const responseData = await response.json();
       console.log(`📡 Response data:`, responseData);
 
@@ -1978,12 +1975,12 @@ export default function ProductsPage() {
         console.log(`📊 Products after deletion: ${newProducts.length}`);
         return newProducts;
       });
-      
-      toast({ 
-        title: "Success", 
-        description: responseData.message || "Product deleted successfully" 
+
+      toast({
+        title: "Success",
+        description: responseData.message || "Product deleted successfully"
       });
-      
+
       // Silent notification
       try {
         const token = localStorage.getItem('token');
@@ -1999,13 +1996,13 @@ export default function ProductsPage() {
       } catch (notifError) {
         console.log('Notification skipped');
       }
-      
+
     } catch (error) {
       console.error("❌ Error deleting product:", error);
-      toast({ 
-        title: "Error", 
-        description: error instanceof Error ? error.message : "Failed to delete product", 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete product",
+        variant: "destructive"
       });
     }
   };
@@ -2015,7 +2012,7 @@ export default function ProductsPage() {
       const oldProduct = products.find(p => (p._id === id || p.id === id));
       const oldStock = oldProduct?.stock || 0;
       const productName = oldProduct?.name || "Product";
-      
+
       const response = await fetch(`${API_BASE_URL}/products/${id}/stock`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -2029,9 +2026,9 @@ export default function ProductsPage() {
 
       const result = await response.json();
       const updatedProduct = result.product || result;
-      
+
       setProducts(prev => prev.map(p => (p._id === id || p.id === id) ? updatedProduct : p));
-      
+
       if (newStock === 0 && oldStock > 0) {
         try {
           const token = localStorage.getItem('token');
@@ -2048,7 +2045,7 @@ export default function ProductsPage() {
           console.log('Notification skipped');
         }
         toast({ title: "Stock Updated", description: `${productName} is now OUT OF STOCK!`, variant: "destructive" });
-      } 
+      }
       else if (newStock < 10 && newStock > 0 && oldStock >= 10) {
         try {
           const token = localStorage.getItem('token');
@@ -2086,13 +2083,13 @@ export default function ProductsPage() {
       else {
         toast({ title: "Success", description: "Stock updated successfully" });
       }
-      
+
     } catch (error) {
       console.error("Error updating stock:", error);
-      toast({ 
-        title: "Error", 
-        description: error instanceof Error ? error.message : "Failed to update stock", 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update stock",
+        variant: "destructive"
       });
     }
   };
@@ -2100,35 +2097,35 @@ export default function ProductsPage() {
   const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     setSubmitting(true);
     const reader = new FileReader();
-    
+
     reader.onload = async (ev) => {
       const text = ev.target?.result as string;
       const lines = text.split("\n").filter(l => l.trim());
       const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
-      
+
       let successCount = 0;
       let errorCount = 0;
       const errors: string[] = [];
       const addedProducts: Product[] = [];
-      
+
       for (let i = 1; i < lines.length; i++) {
         const values = parseCSVLine(lines[i]);
         if (values.length === 0 || !values[0]) continue;
-        
+
         try {
           const productData: any = {};
-          
+
           headers.forEach((header, idx) => {
             if (idx < values.length && values[idx]) {
               productData[header] = values[idx];
             }
           });
-          
+
           const category = productData.category || "Rings";
-          
+
           let sku = productData.sku || "";
           if (!sku || sku.trim() === "") {
             try {
@@ -2139,7 +2136,7 @@ export default function ProductsPage() {
               sku = `${getSkuPrefix(category)}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
             }
           }
-          
+
           let imageUrls: string[] = [];
           if (productData.image_urls || productData.images) {
             const imagesStr = productData.image_urls || productData.images || "";
@@ -2147,15 +2144,15 @@ export default function ProductsPage() {
           } else if (productData.image_url) {
             imageUrls = [productData.image_url];
           }
-          
+
           const tags = productData.tags ? productData.tags.split("|").map((t: string) => t.trim()) : [];
           const ringSizes = productData.ring_sizes ? productData.ring_sizes.split("|").map((s: string) => s.trim()) : [];
-          
+
           let careInstructions = DEFAULT_CARE_INSTRUCTIONS;
           if (productData.care_instructions && productData.care_instructions.trim() !== "") {
             careInstructions = productData.care_instructions.split("|").map((i: string) => i.trim());
           }
-          
+
           const apiProductData = {
             name: productData.name || "",
             price: parseFloat(productData.price) || 0,
@@ -2166,8 +2163,8 @@ export default function ProductsPage() {
             description: productData.description || "",
             sku: sku,
             tags: tags,
-            status: productData.status === "Archived" ? "Archived" : 
-                    productData.status === "Published" ? "Published" : "Draft",
+            status: productData.status === "Archived" ? "Archived" :
+              productData.status === "Published" ? "Published" : "Draft",
             goldDetails: {
               weight: parseFloat(productData.weight) || 0,
               purity: productData.purity || "22K",
@@ -2198,41 +2195,41 @@ export default function ProductsPage() {
               count: parseInt(productData.review_count) || 0,
             },
           };
-          
+
           const formData = new FormData();
           formData.append('productData', JSON.stringify(apiProductData));
-          
+
           if (imageUrls.length > 0) {
             formData.append('imageUrls', JSON.stringify(imageUrls));
           }
-          
+
           const response = await fetch(`${API_BASE_URL}/products/add-with-images`, {
             method: "POST",
             body: formData,
           });
-          
+
           if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || "Failed to add product");
           }
-          
+
           const result = await response.json();
           const newProduct = result.product || result;
-          
+
           if (!addedProducts.some(p => p._id === newProduct._id || p.id === newProduct.id)) {
             addedProducts.push(newProduct);
           }
-          
+
           successCount++;
           await new Promise(resolve => setTimeout(resolve, 100));
-          
+
         } catch (err) {
           console.error(`Failed to add product at row ${i + 1}:`, err);
           errorCount++;
           errors.push(`Row ${i + 1}: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
       }
-      
+
       setProducts(prev => {
         const existingIds = new Set(prev.map(p => p._id || p.id));
         const newProducts = addedProducts.filter(p => {
@@ -2241,10 +2238,10 @@ export default function ProductsPage() {
         });
         return [...prev, ...newProducts];
       });
-      
+
       setSubmitting(false);
       setBulkOpen(false);
-      
+
       if (successCount > 0) {
         try {
           const token = localStorage.getItem('token');
@@ -2261,25 +2258,25 @@ export default function ProductsPage() {
           console.log('Notification skipped');
         }
       }
-      
+
       if (errors.length > 0) {
-        toast({ 
-          title: "Bulk Upload Completed with Errors", 
+        toast({
+          title: "Bulk Upload Completed with Errors",
           description: `${successCount} products added. ${errorCount} failed. Check console for details.`,
           variant: "destructive"
         });
         console.error("Bulk upload errors:", errors);
       } else {
-        toast({ 
-          title: "Bulk Upload Complete!", 
+        toast({
+          title: "Bulk Upload Complete!",
           description: `${successCount} products added successfully.`,
           variant: "default"
         });
       }
-      
+
       fetchProducts();
     };
-    
+
     reader.readAsText(file);
   };
 
@@ -2315,7 +2312,7 @@ export default function ProductsPage() {
       "rating",
       "review_count"
     ];
-    
+
     const exampleRow = [
       "Example Diamond Ring",
       "43445",
@@ -2347,7 +2344,7 @@ export default function ProductsPage() {
       "4.5",
       "24"
     ];
-    
+
     const csv = [headers.join(","), exampleRow.map(cell => `"${cell}"`).join(",")].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -2356,7 +2353,7 @@ export default function ProductsPage() {
     a.download = "products_bulk_template.csv";
     a.click();
     URL.revokeObjectURL(url);
-    
+
     toast({ title: "Template Downloaded", description: "Use this template for bulk upload. Leave care_instructions empty to use defaults." });
   };
 
@@ -2385,7 +2382,7 @@ export default function ProductsPage() {
   const handleEditProduct = async (formData: any) => {
     if (!editProduct) return;
     const productId = editProduct._id || editProduct.id;
-    
+
     const updates: any = {
       name: formData.name,
       price: formData.price,
@@ -2426,7 +2423,7 @@ export default function ProductsPage() {
         count: formData.reviewCount,
       },
     };
-    
+
     if (formData.weight) {
       updates.goldDetails = {
         purity: formData.purity,
@@ -2434,13 +2431,13 @@ export default function ProductsPage() {
         makingCharge: 0,
       };
     }
-    
+
     try {
       await updateProductInAPI(
-        productId!, 
-        updates, 
-        formData.imageFile, 
-        formData.galleryFiles, 
+        productId!,
+        updates,
+        formData.imageFile,
+        formData.galleryFiles,
         formData.videoFile
       );
       setEditProduct(null);
@@ -2451,17 +2448,17 @@ export default function ProductsPage() {
 
   const handleDelete = async (id: string) => {
     if (!id) {
-      toast({ 
-        title: "Error", 
-        description: "Invalid product ID", 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: "Invalid product ID",
+        variant: "destructive"
       });
       return;
     }
-    
+
     const productToDelete = products.find(p => (p._id === id || p.id === id));
     const productName = productToDelete?.name || "this product";
-    
+
     if (window.confirm(`Are you sure you want to delete "${productName}"?`)) {
       console.log(`🗑️ User confirmed deletion of: ${productName}`);
       await deleteProductFromAPI(id);
@@ -2472,7 +2469,7 @@ export default function ProductsPage() {
 
   const handleDeleteAll = async () => {
     if (!window.confirm("Delete all products? This cannot be undone.")) return;
-    
+
     try {
       for (const product of products) {
         const productId = product._id || product.id;
@@ -2540,12 +2537,12 @@ export default function ProductsPage() {
               Delete All
             </Button>
           )}
-          
+
           <Button variant="outline" size="sm" onClick={fetchProducts} className="gap-1 rounded-xl">
             <RefreshCw className="h-3.5 w-3.5" />
             Refresh
           </Button>
-          
+
           <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="gap-1 rounded-xl">
@@ -2559,7 +2556,7 @@ export default function ProductsPage() {
                   <FileUp className="h-5 w-5" /> Bulk Upload Products
                 </DialogTitle>
                 <DialogDescription>
-                  Upload multiple products at once using a CSV file. 
+                  Upload multiple products at once using a CSV file.
                   <br />
                   <span className="text-xs text-muted-foreground mt-1 block">
                     Note: Leave "care_instructions" empty to use default instructions. Leave "sku" empty for auto-generation.
@@ -2644,11 +2641,11 @@ export default function ProductsPage() {
       {/* Search */}
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input 
-          placeholder="Search by name, SKU, or category..." 
-          className="pl-9 bg-secondary/50 border-0 h-11 rounded-xl" 
-          value={search} 
-          onChange={(e) => setSearch(e.target.value)} 
+        <Input
+          placeholder="Search by name, SKU, or category..."
+          className="pl-9 bg-secondary/50 border-0 h-11 rounded-xl"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
@@ -2658,7 +2655,7 @@ export default function ProductsPage() {
           const imageUrl = getProductImage(product);
           const hasValidImage = imageUrl && !imageUrl.includes('data:image/svg+xml');
           const productId = product._id || product.id;
-          
+
           return (
             <Card key={productId} className="border-border/20 overflow-hidden hover:border-primary/20 transition-all duration-300">
               <CardContent className="p-0">
@@ -2666,9 +2663,9 @@ export default function ProductsPage() {
                   <div className="flex items-center gap-4 min-w-[200px]">
                     <div className="h-14 w-14 rounded-xl bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
                       {hasValidImage ? (
-                        <img 
-                          src={imageUrl} 
-                          alt={product.name} 
+                        <img
+                          src={imageUrl}
+                          alt={product.name}
                           className="h-full w-full object-cover"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="1"%3E%3Crect x="3" y="3" width="18" height="18" rx="2"%3E%3C/rect%3E%3Ccircle cx="8.5" cy="8.5" r="1.5"%3E%3C/circle%3E%3Cpolyline points="21 15 16 10 5 21"%3E%3C/polyline%3E%3C/svg%3E';
@@ -2713,51 +2710,51 @@ export default function ProductsPage() {
                   </div>
 
                   <div className="flex items-center gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => setViewProduct(product)} 
-                      className="h-9 w-9 rounded-xl text-primary hover:bg-primary hover:text-white transition-all duration-200" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setViewProduct(product)}
+                      className="h-9 w-9 rounded-xl text-primary hover:bg-primary hover:text-white transition-all duration-200"
                       title="View Details"
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
-                    
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => setEditProduct(product)} 
-                      className="h-9 w-9 rounded-xl text-blue-500 hover:bg-blue-500 hover:text-white transition-all duration-200" 
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setEditProduct(product)}
+                      className="h-9 w-9 rounded-xl text-blue-500 hover:bg-blue-500 hover:text-white transition-all duration-200"
                       title="Edit Product"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
-                    
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => handleStockChange(productId!, 1)} 
-                      className="h-9 w-9 rounded-xl text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all duration-200" 
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleStockChange(productId!, 1)}
+                      className="h-9 w-9 rounded-xl text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all duration-200"
                       title="Add Stock"
                     >
                       <PlusCircle className="h-4 w-4" />
                     </Button>
-                    
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => handleStockChange(productId!, -1)} 
-                      className="h-9 w-9 rounded-xl text-amber-600 hover:bg-amber-600 hover:text-white transition-all duration-200" 
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleStockChange(productId!, -1)}
+                      className="h-9 w-9 rounded-xl text-amber-600 hover:bg-amber-600 hover:text-white transition-all duration-200"
                       title="Remove Stock"
                     >
                       <MinusCircle className="h-4 w-4" />
                     </Button>
-                    
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => handleDelete(productId!)} 
-                      className="h-9 w-9 rounded-xl text-destructive hover:bg-destructive hover:text-white transition-all duration-200" 
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(productId!)}
+                      className="h-9 w-9 rounded-xl text-destructive hover:bg-destructive hover:text-white transition-all duration-200"
                       title="Delete Product"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -2789,10 +2786,10 @@ export default function ProductsPage() {
             <DialogDescription>Update the product details below.</DialogDescription>
           </DialogHeader>
           {editProduct && (
-            <ProductForm 
-              product={editProduct} 
-              onSubmit={handleEditProduct} 
-              onCancel={() => setEditProduct(null)} 
+            <ProductForm
+              product={editProduct}
+              onSubmit={handleEditProduct}
+              onCancel={() => setEditProduct(null)}
               isEdit={true}
               categories={categories}
               loading={submitting}

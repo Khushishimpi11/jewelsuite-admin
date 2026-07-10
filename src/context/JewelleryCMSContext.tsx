@@ -154,7 +154,7 @@ interface JewelleryCMSContextType {
   toggleCustomerStatus: (id: string, isActive: boolean) => Promise<void>;
   getCustomerById: (id: string) => Promise<Customer | null>;
   getCustomerOrders: (customerId: string) => Order[];
-  
+
   // Analytics functions
   getTotalRevenue: () => number;
   getTotalOrders: () => number;
@@ -191,7 +191,7 @@ export function JewelleryCMSProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [admin, setAdmin] = useState<Admin | null>(null);
-  
+
   const initialFetchDone = useRef(false);
 
   // ==================== AUTH FUNCTIONS ====================
@@ -476,7 +476,7 @@ export function JewelleryCMSProvider({ children }: { children: ReactNode }) {
       if (!response.ok) throw new Error(data.message);
 
       const ordersArray = data.orders || [];
-      
+
       const formattedOrders = ordersArray.map((o: any) => {
         let userId = null;
         if (o.userId) {
@@ -486,7 +486,7 @@ export function JewelleryCMSProvider({ children }: { children: ReactNode }) {
             userId = o.userId;
           }
         }
-        
+
         return {
           id: o._id,
           _id: o._id,
@@ -655,20 +655,20 @@ export function JewelleryCMSProvider({ children }: { children: ReactNode }) {
   // ✅ FIXED: getCustomerOrders function
   const getCustomerOrders = useCallback((customerId: string): Order[] => {
     const customer = customers.find(c => c.id === customerId || c._id === customerId);
-    
+
     if (!customer) {
       console.log(`❌ Customer not found: ${customerId}`);
       return [];
     }
-    
-    const customerOrders = orders.filter(order => 
-      order.customerId === customerId || 
+
+    const customerOrders = orders.filter(order =>
+      order.customerId === customerId ||
       order.customerId === customer._id ||
       order.userId === customerId ||
       order.userId === customer._id ||
       order.customerEmail === customer.email
     );
-    
+
     console.log(`📦 Found ${customerOrders.length} orders for ${customer.name} (${customer.email})`);
     return customerOrders;
   }, [orders, customers]);
@@ -840,28 +840,28 @@ export function JewelleryCMSProvider({ children }: { children: ReactNode }) {
     const uniqueCategories = new Set(products.map(p => p.category));
     return uniqueCategories.size;
   }, [products]);
-  
+
   const getInventoryValue = useCallback(() => {
     return products.reduce((sum, p) => sum + (p.price * p.stock), 0);
   }, [products]);
-  
+
   const getGoldInventoryValue = useCallback(() => {
     let totalWeight = 0;
     let totalValue = 0;
-    
+
     products.forEach(product => {
       if (product.goldDetails && product.goldDetails.weight) {
         const weight = product.goldDetails.weight * product.stock;
         totalWeight += weight;
-        const goldRate = product.goldDetails.purity === "24K" ? 6500 : 
-                         product.goldDetails.purity === "22K" ? 6000 : 5000;
+        const goldRate = product.goldDetails.purity === "24K" ? 6500 :
+          product.goldDetails.purity === "22K" ? 6000 : 5000;
         totalValue += weight * goldRate;
       }
     });
-    
+
     return { totalWeight, totalValue };
   }, [products]);
-  
+
   const getCurrentGoldRate = useCallback((purity: string) => {
     const rates: Record<string, number> = {
       "24K": 6500,
@@ -870,17 +870,17 @@ export function JewelleryCMSProvider({ children }: { children: ReactNode }) {
     };
     return rates[purity] || 5500;
   }, []);
-  
+
   const getInventoryLogs = useCallback(() => {
     return inventoryLogs;
   }, [inventoryLogs]);
 
   // ==================== INITIAL TOKEN LOAD ====================
-  
+
   useEffect(() => {
     const savedToken = localStorage.getItem("admin_token");
     const savedAdmin = localStorage.getItem("admin_data");
-    
+
     if (savedToken && savedAdmin) {
       try {
         setToken(savedToken);
