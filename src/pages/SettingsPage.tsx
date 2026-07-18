@@ -1,371 +1,421 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Receipt, Mail, CreditCard, Save, Gem, Loader2, AlertTriangle } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { Building2, CreditCard, Receipt, Bell, Shield, Save, Loader2, Database, Trash2, HardDrive, RefreshCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useJewelleryCMS } from "@/context/JewelleryCMSContext";
 
 export default function SettingsPage() {
-  const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get("tab") === "goldrate" ? "goldrate" : "general";
-  const { 
-    goldRates, 
-    updateGoldRate, 
-    getCurrentGoldRate,
-    loading,
-    error 
+  const {
+    settings,
+    updateSettings,
+    getSystemStatus,
+    clearCache,
+    downloadBackup,
+    loading
   } = useJewelleryCMS();
-  
+
+  // Local state for all fields
+  const [storeName, setStoreName] = useState("");
+  const [storeLogo, setStoreLogo] = useState("");
+  const [favicon, setFavicon] = useState("");
+  const [businessEmail, setBusinessEmail] = useState("");
+  const [contactNumber, setContactNumber] = useState("");
+  const [whatsAppNumber, setWhatsAppNumber] = useState("");
+  const [storeAddress, setStoreAddress] = useState("");
+
+  const [razorpayEnabled, setRazorpayEnabled] = useState(true);
+  const [razorpayKeyId, setRazorpayKeyId] = useState("");
+  const [razorpayKeySecret, setRazorpayKeySecret] = useState("");
+  const [codEnabled, setCodEnabled] = useState(true);
+
+  const [gstNumber, setGstNumber] = useState("");
+  const [panNumber, setPanNumber] = useState("");
+  const [invoiceFooterText, setInvoiceFooterText] = useState("");
+
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [newOrderAlerts, setNewOrderAlerts] = useState(true);
+  const [lowStockAlerts, setLowStockAlerts] = useState(true);
+  const [outOfStockAlerts, setOutOfStockAlerts] = useState(true);
+
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+
+  // System stats
+  const [cmsVersion, setCmsVersion] = useState("v1.0.0");
+  const [databaseStatus, setDatabaseStatus] = useState("Connected");
+  const [dbStats, setDbStats] = useState<any>({ products: 0, categories: 0, orders: 0, customers: 0 });
+  const [loadingStatus, setLoadingStatus] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [goldRate22K, setGoldRate22K] = useState("");
-  const [goldRate24K, setGoldRate24K] = useState("");
-  const [goldRate18K, setGoldRate18K] = useState("");
 
-  // Load current gold rates
+  // Load settings when loaded
   useEffect(() => {
-    const rate22K = getCurrentGoldRate("22K");
-    const rate24K = getCurrentGoldRate("24K");
-    const rate18K = getCurrentGoldRate("18K");
-    
-    setGoldRate22K(rate22K?.toString() || "5800");
-    setGoldRate24K(rate24K?.toString() || "6300");
-    setGoldRate18K(rate18K?.toString() || "4750");
-  }, [goldRates, getCurrentGoldRate]);
+    if (settings) {
+      setStoreName(settings.storeName || "");
+      setStoreLogo(settings.storeLogo || "");
+      setFavicon(settings.favicon || "");
+      setBusinessEmail(settings.businessEmail || "");
+      setContactNumber(settings.contactNumber || "");
+      setWhatsAppNumber(settings.whatsAppNumber || "");
+      setStoreAddress(settings.storeAddress || "");
 
-  const handleSaveGoldRates = async () => {
+      setRazorpayEnabled(settings.razorpayEnabled !== false);
+      setRazorpayKeyId(settings.razorpayKeyId || "");
+      setRazorpayKeySecret(settings.razorpayKeySecret || "");
+      setCodEnabled(settings.codEnabled !== false);
+
+      setGstNumber(settings.gstNumber || "");
+      setPanNumber(settings.panNumber || "");
+      setInvoiceFooterText(settings.invoiceFooterText || "");
+
+      setEmailNotifications(settings.emailNotifications !== false);
+      setNewOrderAlerts(settings.newOrderAlerts !== false);
+      setLowStockAlerts(settings.lowStockAlerts !== false);
+      setOutOfStockAlerts(settings.outOfStockAlerts !== false);
+
+      setMaintenanceMode(!!settings.maintenanceMode);
+    }
+  }, [settings]);
+
+  // Load system/db status
+  const fetchStatus = async () => {
+    setLoadingStatus(true);
+    const data = await getSystemStatus();
+    if (data && data.success) {
+      setCmsVersion(data.cmsVersion || "v1.0.0");
+      setDatabaseStatus(data.databaseStatus || "Connected");
+      if (data.stats) {
+        setDbStats(data.stats);
+      }
+    }
+    setLoadingStatus(false);
+  };
+
+  useEffect(() => {
+    fetchStatus();
+  }, [getSystemStatus]);
+
+  const handleSaveSettings = async () => {
     setSaving(true);
     try {
-      const rate22 = parseFloat(goldRate22K);
-      const rate24 = parseFloat(goldRate24K);
-      const rate18 = parseFloat(goldRate18K);
-      
-      if (isNaN(rate22) || isNaN(rate24) || isNaN(rate18)) {
-        toast({ title: "Error", description: "Please enter valid numbers", variant: "destructive" });
-        return;
-      }
-      
-      await updateGoldRate("22K", rate22);
-      await updateGoldRate("24K", rate24);
-      await updateGoldRate("18K", rate18);
-      
-      toast({ title: "Success", description: "Gold rates updated successfully" });
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      await updateSettings({
+        storeName,
+        storeLogo,
+        favicon,
+        businessEmail,
+        contactNumber,
+        whatsAppNumber,
+        storeAddress,
+        razorpayEnabled,
+        razorpayKeyId,
+        razorpayKeySecret,
+        codEnabled,
+        gstNumber,
+        panNumber,
+        invoiceFooterText,
+        emailNotifications,
+        newOrderAlerts,
+        lowStockAlerts,
+        outOfStockAlerts,
+        maintenanceMode
+      });
+    } catch (err) {
+      // Error is already toasted by updateSettings
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSaveGeneral = () => {
-    toast({ title: "Settings saved!", description: "Store details updated successfully" });
-  };
-
-  const handleSaveTax = () => {
-    toast({ title: "Tax settings saved!", description: "GST configuration updated" });
-  };
-
-  const handleSaveInvoice = () => {
-    toast({ title: "Invoice settings saved!", description: "Invoice configuration updated" });
-  };
-
-  const handleSaveEmail = () => {
-    toast({ title: "Email settings saved!", description: "SMTP configuration updated" });
-  };
-
-  const handleSavePayment = () => {
-    toast({ title: "Payment settings saved!", description: "Payment gateway configuration updated" });
+  const handleClearCache = async () => {
+    try {
+      await clearCache();
+    } catch (err) {}
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex items-center justify-center min-h-[65vh]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading settings...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
-          <p className="text-destructive font-medium mb-2">Error loading settings</p>
-          <p className="text-muted-foreground text-sm">{error}</p>
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading CMS Settings...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <motion.div className="space-y-6 p-6 max-w-4xl" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      <div>
-        <h1 className="text-2xl font-display font-bold">Settings</h1>
-        <p className="text-muted-foreground text-sm font-sans">Configure your JewelsKart CMS</p>
+    <motion.div 
+      className="space-y-6 p-6 max-w-4xl" 
+      initial={{ opacity: 0, y: 10 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      transition={{ duration: 0.3 }}
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-display font-bold">CMS Settings</h1>
+          <p className="text-muted-foreground text-sm font-sans">Manage your JewelsKart system configuration</p>
+        </div>
+        <Button onClick={handleSaveSettings} disabled={saving} className="gap-2 rounded-xl h-11 px-6 shadow-sm">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {saving ? "Saving Changes..." : "Save Settings"}
+        </Button>
       </div>
 
-      <Tabs defaultValue={defaultTab} className="space-y-4">
-        <TabsList className="bg-secondary/50 rounded-xl p-1 flex flex-wrap gap-1">
-          <TabsTrigger value="general" className="rounded-lg">General</TabsTrigger>
-          <TabsTrigger value="goldrate" className="rounded-lg">Gold Rate</TabsTrigger>
-          <TabsTrigger value="tax" className="rounded-lg">Tax & GST</TabsTrigger>
-          <TabsTrigger value="invoice" className="rounded-lg">Invoice</TabsTrigger>
-          <TabsTrigger value="email" className="rounded-lg">Email</TabsTrigger>
-          <TabsTrigger value="payment" className="rounded-lg">Payments</TabsTrigger>
+      <Tabs defaultValue="store" className="space-y-4">
+        <TabsList className="bg-secondary/50 rounded-xl p-1 flex flex-wrap gap-1 w-full justify-start overflow-x-auto">
+          <TabsTrigger value="store" className="rounded-lg gap-2"><Building2 className="h-4 w-4" />Store Info</TabsTrigger>
+          <TabsTrigger value="payment" className="rounded-lg gap-2"><CreditCard className="h-4 w-4" />Payment Gateway</TabsTrigger>
+          <TabsTrigger value="company" className="rounded-lg gap-2"><Receipt className="h-4 w-4" />Company Details</TabsTrigger>
+          <TabsTrigger value="notifications" className="rounded-lg gap-2"><Bell className="h-4 w-4" />Notifications</TabsTrigger>
+          <TabsTrigger value="system" className="rounded-lg gap-2"><Shield className="h-4 w-4" />System</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="general">
+        {/* 1. STORE INFORMATION */}
+        <TabsContent value="store">
           <Card className="glass-card rounded-2xl">
             <CardHeader>
-              <CardTitle className="text-base font-display flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-accent" /> Store Details
-              </CardTitle>
+              <CardTitle className="text-base font-display">Store Information</CardTitle>
+              <CardDescription>Setup your public shop identity, contact details, logo, and favicon.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Store Name</Label>
-                  <Input defaultValue="JewelsKart" className="h-11 rounded-xl" />
+                  <Input value={storeName} onChange={(e) => setStoreName(e.target.value)} className="h-11 rounded-xl" placeholder="e.g. JewelsKart" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Store Email</Label>
-                  <Input defaultValue="info@jewelskart.com" className="h-11 rounded-xl" />
+                  <Label>Business Email</Label>
+                  <Input type="email" value={businessEmail} onChange={(e) => setBusinessEmail(e.target.value)} className="h-11 rounded-xl" placeholder="e.g. info@jewelskart.com" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Phone</Label>
-                  <Input defaultValue="+91 98765 43210" className="h-11 rounded-xl" />
+                  <Label>Contact Number</Label>
+                  <Input value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} className="h-11 rounded-xl" placeholder="e.g. +91 98765 43210" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Currency</Label>
-                  <Input defaultValue="INR (₹)" disabled className="h-11 rounded-xl bg-secondary/50" />
+                  <Label>WhatsApp Number</Label>
+                  <Input value={whatsAppNumber} onChange={(e) => setWhatsAppNumber(e.target.value)} className="h-11 rounded-xl" placeholder="e.g. +91 98765 43210" />
                 </div>
               </div>
-              <div className="space-y-2">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div className="space-y-2">
+                  <Label>Store Logo URL</Label>
+                  <Input value={storeLogo} onChange={(e) => setStoreLogo(e.target.value)} className="h-11 rounded-xl" placeholder="Logo image URL" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Favicon URL</Label>
+                  <Input value={favicon} onChange={(e) => setFavicon(e.target.value)} className="h-11 rounded-xl" placeholder="Favicon image URL" />
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2">
                 <Label>Store Address</Label>
-                <Input defaultValue="123 Zaveri Bazaar, Mumbai, Maharashtra 400002" className="h-11 rounded-xl" />
+                <Input value={storeAddress} onChange={(e) => setStoreAddress(e.target.value)} className="h-11 rounded-xl" placeholder="Store address details" />
               </div>
-              <Button className="gap-2 rounded-xl" onClick={handleSaveGeneral}>
-                <Save className="h-4 w-4" />Save Changes
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="goldrate">
-          <Card className="glass-card rounded-2xl">
-            <CardHeader>
-              <CardTitle className="text-base font-display flex items-center gap-2">
-                <Gem className="h-4 w-4 text-accent" /> Gold Rate Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>22K Gold Rate (per gram)</Label>
-                  <Input 
-                    value={goldRate22K} 
-                    onChange={(e) => setGoldRate22K(e.target.value)}
-                    type="text" 
-                    className="h-11 rounded-xl font-medium" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>24K Gold Rate (per gram)</Label>
-                  <Input 
-                    value={goldRate24K} 
-                    onChange={(e) => setGoldRate24K(e.target.value)}
-                    type="text" 
-                    className="h-11 rounded-xl font-medium" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>18K Gold Rate (per gram)</Label>
-                  <Input 
-                    value={goldRate18K} 
-                    onChange={(e) => setGoldRate18K(e.target.value)}
-                    type="text" 
-                    className="h-11 rounded-xl font-medium" 
-                  />
-                </div>
-              </div>
-              <div className="p-4 rounded-xl bg-secondary/40">
-                <p className="text-xs text-muted-foreground">
-                  Last Updated: <span className="text-foreground font-medium">
-                    {goldRates.length > 0 ? new Date(goldRates[goldRates.length - 1].timestamp).toLocaleString() : "Not updated yet"}
-                  </span>
-                </p>
-              </div>
-              <Button 
-                className="gap-2 rounded-xl" 
-                onClick={handleSaveGoldRates}
-                disabled={saving}
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                {saving ? "Saving..." : "Save Gold Rates"}
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="tax">
-          <Card className="glass-card rounded-2xl">
-            <CardHeader>
-              <CardTitle className="text-base font-display flex items-center gap-2">
-                <Receipt className="h-4 w-4 text-accent" /> GST Configuration
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>GSTIN</Label>
-                  <Input defaultValue="27AABCU9603R1ZM" className="h-11 rounded-xl" />
-                </div>
-                <div className="space-y-2">
-                  <Label>GST Rate (%)</Label>
-                  <Input defaultValue="3" type="number" className="h-11 rounded-xl" />
-                </div>
-                <div className="space-y-2">
-                  <Label>HSN Code (Gold)</Label>
-                  <Input defaultValue="7113" className="h-11 rounded-xl" />
-                </div>
-                <div className="space-y-2">
-                  <Label>HSN Code (Diamond)</Label>
-                  <Input defaultValue="7102" className="h-11 rounded-xl" />
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Switch defaultChecked />
-                <Label>Include GST in displayed prices</Label>
-              </div>
-              <Button className="gap-2 rounded-xl" onClick={handleSaveTax}>
-                <Save className="h-4 w-4" />Save Tax Settings
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="invoice">
-          <Card className="glass-card rounded-2xl">
-            <CardHeader>
-              <CardTitle className="text-base font-display flex items-center gap-2">
-                <Receipt className="h-4 w-4 text-accent" /> Invoice Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Invoice Prefix</Label>
-                  <Input defaultValue="JK-INV" className="h-11 rounded-xl" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Next Invoice Number</Label>
-                  <Input defaultValue="1240" type="number" className="h-11 rounded-xl" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Invoice Footer Note</Label>
-                <Input 
-                  defaultValue="Thank you for shopping with JewelsKart! All items are BIS hallmarked." 
-                  className="h-11 rounded-xl" 
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <Switch defaultChecked />
-                <Label>Show store logo on invoices</Label>
-              </div>
-              <Button className="gap-2 rounded-xl" onClick={handleSaveInvoice}>
-                <Save className="h-4 w-4" />Save Invoice Settings
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="email">
-          <Card className="glass-card rounded-2xl">
-            <CardHeader>
-              <CardTitle className="text-base font-display flex items-center gap-2">
-                <Mail className="h-4 w-4 text-accent" /> Email Configuration
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>SMTP Host</Label>
-                  <Input defaultValue="smtp.gmail.com" className="h-11 rounded-xl" />
-                </div>
-                <div className="space-y-2">
-                  <Label>SMTP Port</Label>
-                  <Input defaultValue="587" type="number" className="h-11 rounded-xl" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Username</Label>
-                  <Input defaultValue="noreply@jewelskart.com" className="h-11 rounded-xl" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Password</Label>
-                  <Input type="password" defaultValue="••••••••" className="h-11 rounded-xl" />
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Switch defaultChecked />
-                <Label>Enable TLS</Label>
-              </div>
-              <Button className="gap-2 rounded-xl" onClick={handleSaveEmail}>
-                <Save className="h-4 w-4" />Save Email Settings
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
+        {/* 2. PAYMENT GATEWAY */}
         <TabsContent value="payment">
           <Card className="glass-card rounded-2xl">
             <CardHeader>
-              <CardTitle className="text-base font-display flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-accent" /> Payment Gateway
-              </CardTitle>
+              <CardTitle className="text-base font-display">Payment Gateway Integration</CardTitle>
+              <CardDescription>Configure customer checkout payment gateways for online transactions.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="p-4 rounded-2xl bg-secondary/30 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-semibold">Enable Razorpay Payment Gateway</Label>
+                    <p className="text-xs text-muted-foreground">Accept online payments, credit cards, UPI, net banking</p>
+                  </div>
+                  <Switch checked={razorpayEnabled} onCheckedChange={setRazorpayEnabled} />
+                </div>
+
+                {razorpayEnabled && (
+                  <motion.div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2" initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}>
+                    <div className="space-y-2">
+                      <Label>Razorpay Key ID</Label>
+                      <Input type="password" value={razorpayKeyId} onChange={(e) => setRazorpayKeyId(e.target.value)} className="h-11 rounded-xl font-mono" placeholder="rzp_live_..." />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Razorpay Key Secret</Label>
+                      <Input type="password" value={razorpayKeySecret} onChange={(e) => setRazorpayKeySecret(e.target.value)} className="h-11 rounded-xl font-mono" placeholder="Secret Key" />
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+
+              <Separator />
+
+              <div className="p-4 rounded-2xl bg-secondary/30 flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-semibold">Enable Cash on Delivery (COD)</Label>
+                  <p className="text-xs text-muted-foreground">Allow customers to pay cash when product is delivered</p>
+                </div>
+                <Switch checked={codEnabled} onCheckedChange={setCodEnabled} />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* 3. COMPANY DETAILS */}
+        <TabsContent value="company">
+          <Card className="glass-card rounded-2xl">
+            <CardHeader>
+              <CardTitle className="text-base font-display">Company Details &amp; Tax</CardTitle>
+              <CardDescription>Setup tax invoice credentials and GSTIN values for billing.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-4 rounded-xl bg-secondary/30 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center font-bold text-blue-700 text-lg">R</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>GST Number</Label>
+                  <Input value={gstNumber} onChange={(e) => setGstNumber(e.target.value)} className="h-11 rounded-xl uppercase" placeholder="e.g. 27AABCU9603R1ZM" />
+                </div>
+                <div className="space-y-2">
+                  <Label>PAN Number</Label>
+                  <Input value={panNumber} onChange={(e) => setPanNumber(e.target.value)} className="h-11 rounded-xl uppercase" placeholder="e.g. AABCU9603R" />
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <Label>Invoice Footer Note</Label>
+                <Input value={invoiceFooterText} onChange={(e) => setInvoiceFooterText(e.target.value)} className="h-11 rounded-xl" placeholder="Footer text printed on invoice PDFs" />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* 4. NOTIFICATIONS */}
+        <TabsContent value="notifications">
+          <Card className="glass-card rounded-2xl">
+            <CardHeader>
+              <CardTitle className="text-base font-display">Notification Settings</CardTitle>
+              <CardDescription>Toggle specific email alerts and store notifications.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/20 transition-colors">
+                  <div className="space-y-0.5">
+                    <Label className="font-semibold text-sm">Send Customer Email Notifications</Label>
+                    <p className="text-xs text-muted-foreground">Automatically send emails on order receipt/update</p>
+                  </div>
+                  <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/20 transition-colors">
+                  <div className="space-y-0.5">
+                    <Label className="font-semibold text-sm">New Order Alerts</Label>
+                    <p className="text-xs text-muted-foreground">Receive system notification when a customer places an order</p>
+                  </div>
+                  <Switch checked={newOrderAlerts} onCheckedChange={setNewOrderAlerts} />
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/20 transition-colors">
+                  <div className="space-y-0.5">
+                    <Label className="font-semibold text-sm">Low Stock Alerts</Label>
+                    <p className="text-xs text-muted-foreground">Alert when any product stock goes below 5 units</p>
+                  </div>
+                  <Switch checked={lowStockAlerts} onCheckedChange={setLowStockAlerts} />
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/20 transition-colors">
+                  <div className="space-y-0.5">
+                    <Label className="font-semibold text-sm">Out of Stock Alerts</Label>
+                    <p className="text-xs text-muted-foreground">Alert immediately when product stock reaches zero</p>
+                  </div>
+                  <Switch checked={outOfStockAlerts} onCheckedChange={setOutOfStockAlerts} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* 5. SYSTEM */}
+        <TabsContent value="system">
+          <Card className="glass-card rounded-2xl">
+            <CardHeader>
+              <CardTitle className="text-base font-display">System Status &amp; Maintenance</CardTitle>
+              <CardDescription>Perform backups, manage cached data, and check database live health.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Maintenance Toggle */}
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
+                <div className="space-y-0.5 pr-4">
+                  <Label className="text-sm font-semibold text-amber-800 dark:text-amber-300">Maintenance Mode</Label>
+                  <p className="text-xs text-amber-700/80 dark:text-amber-400/80">Offline the consumer website for scheduled updates</p>
+                </div>
+                <Switch checked={maintenanceMode} onCheckedChange={setMaintenanceMode} />
+              </div>
+
+              {/* Status Section */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl bg-secondary/40 space-y-1">
+                  <p className="text-xs text-muted-foreground">CMS Version</p>
+                  <p className="text-base font-semibold">{cmsVersion}</p>
+                </div>
+                <div className="p-4 rounded-xl bg-secondary/40 space-y-1 flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-sm">Razorpay</p>
-                    <p className="text-xs text-muted-foreground">UPI, Cards, Net Banking</p>
+                    <p className="text-xs text-muted-foreground">Database Status</p>
+                    <span className={`inline-flex items-center gap-1.5 text-sm font-bold mt-1 ${databaseStatus === "Connected" ? "text-emerald-500" : "text-rose-500"}`}>
+                      <span className={`h-2.5 w-2.5 rounded-full ${databaseStatus === "Connected" ? "bg-emerald-500" : "bg-rose-500"} animate-pulse`} />
+                      {databaseStatus}
+                    </span>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={fetchStatus} disabled={loadingStatus}>
+                    <RefreshCw className={`h-4 w-4 ${loadingStatus ? "animate-spin" : ""}`} />
+                  </Button>
+                </div>
+              </div>
+
+              {/* DB Stats */}
+              <div className="p-4 rounded-xl bg-secondary/20 border space-y-3">
+                <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <HardDrive className="h-4 w-4" /> Database Collection Summary
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                  <div className="space-y-0.5">
+                    <p className="text-lg font-bold text-foreground">{dbStats.products}</p>
+                    <p className="text-xs text-muted-foreground">Products</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-lg font-bold text-foreground">{dbStats.categories}</p>
+                    <p className="text-xs text-muted-foreground">Categories</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-lg font-bold text-foreground">{dbStats.orders}</p>
+                    <p className="text-xs text-muted-foreground">Orders</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-lg font-bold text-foreground">{dbStats.customers}</p>
+                    <p className="text-xs text-muted-foreground">Customers</p>
                   </div>
                 </div>
-                <Switch defaultChecked />
               </div>
-              <div className="p-4 rounded-xl bg-secondary/30 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center font-bold text-purple-700 text-lg">S</div>
-                  <div>
-                    <p className="font-medium text-sm">Stripe</p>
-                    <p className="text-xs text-muted-foreground">International Cards</p>
-                  </div>
-                </div>
-                <Switch />
-              </div>
+
               <Separator />
-              <div className="space-y-2">
-                <Label>Razorpay Key ID</Label>
-                <Input defaultValue="rzp_live_••••••••" type="password" className="h-11 rounded-xl" />
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button variant="outline" className="flex-1 gap-2 rounded-xl h-11 border-dashed hover:border-solid" onClick={downloadBackup}>
+                  <Database className="h-4 w-4 text-accent" /> Trigger Database Backup (JSON)
+                </Button>
+                <Button variant="outline" className="flex-1 gap-2 rounded-xl h-11 text-destructive hover:bg-destructive/5 hover:text-destructive border-dashed hover:border-solid border-destructive/30" onClick={handleClearCache}>
+                  <Trash2 className="h-4 w-4" /> Clear System Cache
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label>Razorpay Key Secret</Label>
-                <Input type="password" defaultValue="••••••••" className="h-11 rounded-xl" />
-              </div>
-              <Button className="gap-2 rounded-xl" onClick={handleSavePayment}>
-                <Save className="h-4 w-4" />Save Payment Settings
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>

@@ -15,10 +15,11 @@ import CustomersPage from "@/pages/CustomersPage";
 import InventoryPage from "@/pages/InventoryPage";
 import PaymentsPage from "@/pages/PaymentsPage";
 import MarketingPage from "@/pages/MarketingPage";
-import AnalyticsPage from "@/pages/AnalyticsPage";
 import BrandsPage from "@/pages/BrandsPage";
 import SettingsPage from "@/pages/SettingsPage";
+import ProfilePage from "@/pages/ProfilePage";
 import CategoriesPage from "@/pages/CategoriesPage";
+
 import RevenueDetailsPage from "@/pages/RevenueDetailsPage";
 import LoginPage from "@/pages/LoginPage";
 import SignupPage from "@/pages/SignupPage";
@@ -73,9 +74,9 @@ const App = () => (
                 <Route path="/inventory" element={<InventoryPage />} />
                 <Route path="/payments" element={<PaymentsPage />} />
                 <Route path="/marketing" element={<MarketingPage />} />
-                <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/brands" element={<BrandsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/categories" element={<CategoriesPage />} />
                 <Route path="/revenue-details" element={<RevenueDetailsPage />} />
                 <Route path="/returns" element={<ReturnRequestsPage />} />

@@ -25,7 +25,7 @@ export function TopNavbar() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const { logout, user } = useJewelleryCMS();
+  const { logout, admin } = useJewelleryCMS();
 
   // Fetch notifications from API
   const fetchNotifications = async () => {
@@ -126,14 +126,23 @@ export function TopNavbar() {
       'back_in_stock': '✅',
       'new_order': '🛍️',
       'order_cancelled': '❌',
+      'order_shipped': '🚚',
+      'order_delivered': '📦',
       'payment_received': '💰',
       'payment_failed': '⚠️',
+      'refund_processed': '💸',
+      'refund_completed': '✅',
       'return_request': '🔄',
       'exchange_request': '🔄',
       'return_exchange_approved': '✅',
       'return_exchange_rejected': '❌',
       'new_customer': '👤',
-      'customer_complaint': '📢'
+      'customer_complaint': '📢',
+      'new_review': '⭐',
+      'db_backup': '💾',
+      'system_error': '🔴',
+      'cms_update': '🆕',
+      'system': '🔔'
     };
     return icons[type] || '🔔';
   };
@@ -289,11 +298,11 @@ export function TopNavbar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="rounded-xl w-56">
             <DropdownMenuLabel>
-              <p className="font-medium">{user?.name || 'Admin User'}</p>
-              <p className="text-xs text-muted-foreground">{user?.email || 'admin@jewelskart.com'}</p>
+              <p className="font-medium">{admin?.name || 'Admin User'}</p>
+              <p className="text-xs text-muted-foreground">{admin?.email || 'admin@jewelskart.com'}</p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/settings")}>
+            <DropdownMenuItem onClick={() => navigate("/profile")}>
               <UserCircle className="h-4 w-4 mr-2" />Profile
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/settings")}>

@@ -26,7 +26,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
 // Types
 interface GoldDetails {
   weight: number;
-  purity: "22K" | "18K" | "24K";
+  purity: "9K" | "10K" | "14K" | "18K" | "21K" | "22K" | "23K" | "24K";
   makingCharge: number;
 }
 
@@ -148,7 +148,7 @@ const tagColors: Record<string, string> = {
 const brandsList = ["JewelsKart Original"];
 const tagsList = ["signature", "jewellery", "limited-edition", "bestseller", "premium-pick"];
 const ringSizes = ["5", "6", "7", "8", "9", "10", "11", "12"];
-const purityOptions = ["22K", "18K", "24K"];
+const purityOptions = ["9K", "10K", "14K", "18K", "21K", "22K", "23K", "24K"];
 const finishOptions = ["High Polish", "Matte", "Brushed", "Antique", "Diamond Cut"];
 const hallmarkOptions = ["BIS Hallmarked", "Hallmark Certified", "No Hallmark"];
 const certificationOptions = ["IGI Certified", "GIA Certified", "SGL Certified", "Not Certified"];
@@ -1666,6 +1666,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [isInitialFetch, setIsInitialFetch] = useState(true);
+  const [dbTotalCount, setDbTotalCount] = useState<number | null>(null);
 
   const fetchRef = useRef(false);
 
@@ -1735,8 +1736,24 @@ export default function ProductsPage() {
     }
   };
 
+  // Fetch the true total product count from the database (unaffected by filters)
+  const fetchProductCount = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/products/count`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && typeof data.total === "number") {
+          setDbTotalCount(data.total);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching product count:", error);
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
+    fetchProductCount();
     fetchCategories();
 
     return () => {
@@ -1828,9 +1845,12 @@ export default function ProductsPage() {
         return [...prev, newProduct];
       });
 
+      // Refresh the DB count after adding a product
+      fetchProductCount();
+
       // Silent notification
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('admin_token');
         if (token) {
           await notificationApi.sendNotification({
             type: 'system',
@@ -1914,7 +1934,7 @@ export default function ProductsPage() {
 
       // Silent notification
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('admin_token');
         if (token) {
           await notificationApi.sendNotification({
             type: 'system',
@@ -1976,6 +1996,9 @@ export default function ProductsPage() {
         return newProducts;
       });
 
+      // Refresh the DB count after deletion
+      fetchProductCount();
+
       toast({
         title: "Success",
         description: responseData.message || "Product deleted successfully"
@@ -1983,7 +2006,7 @@ export default function ProductsPage() {
 
       // Silent notification
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('admin_token');
         if (token) {
           await notificationApi.sendNotification({
             type: 'system',
@@ -2031,7 +2054,7 @@ export default function ProductsPage() {
 
       if (newStock === 0 && oldStock > 0) {
         try {
-          const token = localStorage.getItem('token');
+          const token = localStorage.getItem('admin_token');
           if (token) {
             await notificationApi.sendNotification({
               type: 'out_of_stock',
@@ -2048,7 +2071,7 @@ export default function ProductsPage() {
       }
       else if (newStock < 10 && newStock > 0 && oldStock >= 10) {
         try {
-          const token = localStorage.getItem('token');
+          const token = localStorage.getItem('admin_token');
           if (token) {
             await notificationApi.sendNotification({
               type: 'low_stock',
@@ -2065,7 +2088,7 @@ export default function ProductsPage() {
       }
       else if (oldStock === 0 && newStock > 0) {
         try {
-          const token = localStorage.getItem('token');
+          const token = localStorage.getItem('admin_token');
           if (token) {
             await notificationApi.sendNotification({
               type: 'back_in_stock',
@@ -2244,7 +2267,7 @@ export default function ProductsPage() {
 
       if (successCount > 0) {
         try {
-          const token = localStorage.getItem('token');
+          const token = localStorage.getItem('admin_token');
           if (token) {
             await notificationApi.sendNotification({
               type: 'system',
@@ -2365,7 +2388,8 @@ export default function ProductsPage() {
     return name.includes(searchText) || sku.includes(searchText) || category.includes(searchText);
   });
 
-  const totalProducts = products.length;
+  // Use DB count if available (true total), otherwise fall back to fetched array length
+  const totalProducts = dbTotalCount !== null ? dbTotalCount : products.length;
   const totalValue = products.reduce((sum, p) => sum + (p.price || 0), 0);
   const lowStockCount = products.filter(p => (p.stock || 0) > 0 && (p.stock || 0) <= 5).length;
   const outOfStockCount = products.filter(p => (p.stock || 0) === 0).length;
@@ -2538,7 +2562,7 @@ export default function ProductsPage() {
             </Button>
           )}
 
-          <Button variant="outline" size="sm" onClick={fetchProducts} className="gap-1 rounded-xl">
+          <Button variant="outline" size="sm" onClick={() => { fetchProducts(); fetchProductCount(); }} className="gap-1 rounded-xl">
             <RefreshCw className="h-3.5 w-3.5" />
             Refresh
           </Button>

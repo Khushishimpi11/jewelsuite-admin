@@ -23,7 +23,7 @@ export interface Product {
   status?: string;
   goldDetails?: {
     weight: number;
-    purity: "22K" | "18K" | "24K";
+    purity: "9K" | "10K" | "14K" | "18K" | "21K" | "22K" | "23K" | "24K";
     makingCharge: number;
   };
   specifications?: any;
@@ -169,6 +169,14 @@ interface JewelleryCMSContextType {
   getGoldInventoryValue: () => { totalWeight: number; totalValue: number };
   getCurrentGoldRate: (purity: string) => number;
   getInventoryLogs: () => InventoryLog[];
+  goldRates: any[];
+  updateGoldRate: (purity: string, rate: number) => Promise<void>;
+  settings: any;
+  fetchSettings: () => Promise<void>;
+  updateSettings: (settingsData: any) => Promise<void>;
+  getSystemStatus: () => Promise<any>;
+  clearCache: () => Promise<void>;
+  downloadBackup: () => Promise<void>;
 }
 
 const JewelleryCMSContext = createContext<JewelleryCMSContextType | undefined>(undefined);
@@ -191,6 +199,16 @@ export function JewelleryCMSProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [admin, setAdmin] = useState<Admin | null>(null);
+  const [goldRates, setGoldRates] = useState<any[]>(() => {
+    const saved = localStorage.getItem("gold_rates_history");
+    return saved ? JSON.parse(saved) : [
+      { purity: "24K", rate: 6500, timestamp: Date.now() },
+      { purity: "22K", rate: 6000, timestamp: Date.now() },
+      { purity: "18K", rate: 5000, timestamp: Date.now() }
+    ];
+  });
+
+  const [settings, setSettings] = useState<any>(null);
 
   const initialFetchDone = useRef(false);
 
@@ -862,18 +880,129 @@ export function JewelleryCMSProvider({ children }: { children: ReactNode }) {
     return { totalWeight, totalValue };
   }, [products]);
 
+  const updateGoldRate = useCallback(async (purity: string, rate: number) => {
+    setGoldRates(prev => {
+      const newRates = [
+        ...prev,
+        { purity, rate, timestamp: Date.now() }
+      ];
+      localStorage.setItem("gold_rates_history", JSON.stringify(newRates));
+      return newRates;
+    });
+  }, []);
+
   const getCurrentGoldRate = useCallback((purity: string) => {
+    const relevantRates = goldRates.filter(r => r.purity === purity);
+    if (relevantRates.length > 0) {
+      return relevantRates[relevantRates.length - 1].rate;
+    }
     const rates: Record<string, number> = {
       "24K": 6500,
       "22K": 6000,
       "18K": 5000
     };
     return rates[purity] || 5500;
-  }, []);
+  }, [goldRates]);
 
   const getInventoryLogs = useCallback(() => {
     return inventoryLogs;
   }, [inventoryLogs]);
+
+  const fetchSettings = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/settings`);
+      const data = await response.json();
+      if (data.success) {
+        setSettings(data.settings);
+      }
+    } catch (err) {
+      console.error("Error fetching settings:", err);
+    }
+  }, []);
+
+  const updateSettings = useCallback(async (settingsData: any) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/settings`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+        body: JSON.stringify(settingsData),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setSettings(data.settings);
+        toast({ title: "Success", description: "Settings updated successfully" });
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (err: any) {
+      console.error("Error updating settings:", err);
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+      throw err;
+    }
+  }, [token]);
+
+  const getSystemStatus = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/settings/status`, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+        }
+      });
+      const data = await response.json();
+      return data;
+    } catch (err) {
+      console.error("Error getting system status:", err);
+      return null;
+    }
+  }, [token]);
+
+  const clearCache = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/settings/clear-cache`, {
+        method: "POST",
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast({ title: "Success", description: data.message });
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+      throw err;
+    }
+  }, [token]);
+
+  const downloadBackup = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/settings/backup`, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+        }
+      });
+      if (!response.ok) throw new Error("Failed to download backup");
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `jewelskart_backup_${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast({ title: "Success", description: "Database backup downloaded successfully!" });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  }, [token]);
+
 
   // ==================== INITIAL TOKEN LOAD ====================
 
@@ -902,8 +1031,9 @@ export function JewelleryCMSProvider({ children }: { children: ReactNode }) {
       fetchOrders();
       fetchCustomers();
       fetchCategories();
+      fetchSettings();
     }
-  }, [token, fetchProducts, fetchOrders, fetchCustomers, fetchCategories]);
+  }, [token, fetchProducts, fetchOrders, fetchCustomers, fetchCategories, fetchSettings]);
 
   // ==================== CONTEXT VALUE ====================
 
@@ -953,6 +1083,14 @@ export function JewelleryCMSProvider({ children }: { children: ReactNode }) {
     getGoldInventoryValue,
     getCurrentGoldRate,
     getInventoryLogs,
+    goldRates,
+    updateGoldRate,
+    settings,
+    fetchSettings,
+    updateSettings,
+    getSystemStatus,
+    clearCache,
+    downloadBackup,
   }), [
     products,
     orders,
@@ -999,6 +1137,14 @@ export function JewelleryCMSProvider({ children }: { children: ReactNode }) {
     getGoldInventoryValue,
     getCurrentGoldRate,
     getInventoryLogs,
+    goldRates,
+    updateGoldRate,
+    settings,
+    fetchSettings,
+    updateSettings,
+    getSystemStatus,
+    clearCache,
+    downloadBackup,
   ]);
 
   return (

@@ -12,10 +12,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { 
-  Search, Eye, Clock, Package, Truck, CheckCircle2, XCircle, IndianRupee, 
-  ShoppingCart, ChevronDown, User, Calendar, Loader2, 
-  AlertTriangle, ArrowUpRight, Trash2, MapPin, Phone, Mail, 
+import {
+  Search, Eye, Clock, Package, Truck, CheckCircle2, XCircle, IndianRupee,
+  ShoppingCart, ChevronDown, User, Calendar, Loader2,
+  AlertTriangle, ArrowUpRight, Trash2, MapPin, Phone, Mail,
   CreditCard, Hash, CalendarDays, Building2, Copy, Check, Image as ImageIcon,
   RefreshCw, History, RotateCcw, Undo2,
   DollarSign, Settings, Home, Receipt, Banknote, ExternalLink, AlertCircle
@@ -45,7 +45,7 @@ declare global {
 type StatusFilter = "All" | "Confirmed" | "Processing" | "Shipped" | "Out for Delivery" | "Delivered" | "Cancelled" | "Returned" | "Return Requested" | "Exchange Requested" | "Return Approved" | "Exchange Approved" | "Return Completed" | "Exchange Completed";
 
 const statusList = [
-  "Confirmed", "Processing", "Shipped", "Out for Delivery", "Delivered", 
+  "Confirmed", "Processing", "Shipped", "Out for Delivery", "Delivered",
   "Cancelled", "Returned", "Return Requested", "Return Approved", "Return Completed",
   "Exchange Requested", "Exchange Approved", "Exchange Completed"
 ];
@@ -102,7 +102,7 @@ const PaymentStatusBadge = ({ status }: { status: string }) => {
 
 export default function OrdersPage() {
   const { token, isAuthenticated, fetchCustomers } = useJewelleryCMS();
-  
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<StatusFilter>("All");
@@ -124,19 +124,19 @@ export default function OrdersPage() {
   const [processingPayment, setProcessingPayment] = useState<string | null>(null);
   const [paymentDetailsDialogOpen, setPaymentDetailsDialogOpen] = useState(false);
   const [selectedPaymentDetails, setSelectedPaymentDetails] = useState<any>(null);
-  
+
   // Refund Dialog States
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
   const [selectedRefundOrder, setSelectedRefundOrder] = useState<Order | null>(null);
   const [refundAmount, setRefundAmount] = useState<number>(0);
   const [processingRefund, setProcessingRefund] = useState(false);
-  
+
   // Exchange Additional Payment Dialog
   const [exchangePaymentDialogOpen, setExchangePaymentDialogOpen] = useState(false);
   const [selectedExchangeOrder, setSelectedExchangeOrder] = useState<Order | null>(null);
   const [exchangeAdditionalAmount, setExchangeAdditionalAmount] = useState<number>(0);
   const [processingExchangePayment, setProcessingExchangePayment] = useState(false);
-  
+
   const initialFetchDone = useRef(false);
 
   const getAuthHeaders = () => {
@@ -176,7 +176,7 @@ export default function OrdersPage() {
     }
 
     setProcessingPayment(order.id);
-    
+
     try {
       const isLoaded = await loadRazorpayScript();
       if (!isLoaded) throw new Error("Failed to load Razorpay SDK");
@@ -255,10 +255,10 @@ export default function OrdersPage() {
 
     // ✅ Check if order has paymentId (online payment) and not COD
     if (!selectedRefundOrder.paymentId || selectedRefundOrder.paymentMethod === "COD") {
-      toast({ 
-        title: "Cannot Process Refund", 
-        description: "This order was paid via COD. No refund needed.", 
-        variant: "default" 
+      toast({
+        title: "Cannot Process Refund",
+        description: "This order was paid via COD. No refund needed.",
+        variant: "default"
       });
       setRefundDialogOpen(false);
       setSelectedRefundOrder(null);
@@ -267,7 +267,7 @@ export default function OrdersPage() {
     }
 
     setProcessingRefund(true);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/payment/refund`, {
         method: "POST",
@@ -287,12 +287,12 @@ export default function OrdersPage() {
       if (!response.ok) throw new Error(data.message || "Refund failed");
 
       toast({ title: "Refund Initiated", description: `Refund of ₹${refundAmount} initiated successfully` });
-      
+
       setRefundDialogOpen(false);
       setSelectedRefundOrder(null);
       setRefundAmount(0);
       await fetchOrdersFromAPI();
-      
+
     } catch (error: any) {
       console.error("Refund error:", error);
       toast({ title: "Refund Failed", description: error.message, variant: "destructive" });
@@ -309,7 +309,7 @@ export default function OrdersPage() {
     }
 
     setProcessingExchangePayment(true);
-    
+
     try {
       const isLoaded = await loadRazorpayScript();
       if (!isLoaded) throw new Error("Failed to load Razorpay SDK");
@@ -387,14 +387,14 @@ export default function OrdersPage() {
       toast({ title: "No Payment", description: "This order has no payment record", variant: "destructive" });
       return;
     }
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/payment/details/${order.paymentId}`, {
         headers: getAuthHeaders(),
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setSelectedPaymentDetails(data.payment);
         setPaymentDetailsDialogOpen(true);
@@ -442,21 +442,21 @@ export default function OrdersPage() {
       setLoading(false);
       return;
     }
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/orders/admin/all`, {
         headers: getAuthHeaders(),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.message || "Failed to fetch orders");
       }
-      
+
       const ordersArray = data.orders || [];
       const formattedOrders = ordersArray.map((o: any) => ({
         id: o._id,
@@ -493,7 +493,7 @@ export default function OrdersPage() {
         returnTrackingNumber: o.returnTrackingNumber,
         exchangeTrackingNumber: o.exchangeTrackingNumber,
       }));
-      
+
       setOrders(formattedOrders);
       await fetchReturnRequests();
     } catch (err: any) {
@@ -506,21 +506,21 @@ export default function OrdersPage() {
 
   const updateOrderStatusAPI = async (orderId: string, status: string, note?: string) => {
     if (!token) throw new Error("Not authenticated");
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/orders/admin/${orderId}/status`, {
         method: "PUT",
         headers: getAuthHeaders(),
         body: JSON.stringify({ status, note }),
       });
-      
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
-      
+
       await syncCustomerStats();
       await fetchOrdersFromAPI();
       await fetchCustomers();
-      
+
       return data;
     } catch (err: any) {
       throw err;
@@ -533,7 +533,7 @@ export default function OrdersPage() {
         method: "POST",
         headers: getAuthHeaders(),
       });
-      
+
       const data = await response.json();
       console.log("✅ Customer stats synced:", data);
       return data;
@@ -544,20 +544,20 @@ export default function OrdersPage() {
 
   const deleteOrderAPI = async (orderId: string) => {
     if (!token) throw new Error("Not authenticated");
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/orders/admin/${orderId}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
-      
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
-      
+
       await syncCustomerStats();
       await fetchOrdersFromAPI();
       await fetchCustomers();
-      
+
       return data;
     } catch (err: any) {
       throw err;
@@ -566,20 +566,20 @@ export default function OrdersPage() {
 
   const deleteAllOrdersAPI = async () => {
     if (!token) throw new Error("Not authenticated");
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/orders/admin/delete-all`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
-      
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
-      
+
       await syncCustomerStats();
       await fetchOrdersFromAPI();
       await fetchCustomers();
-      
+
       return data;
     } catch (err: any) {
       throw err;
@@ -620,30 +620,30 @@ export default function OrdersPage() {
     }
   };
 
- const handleDeleteOrder = async () => {
-  if (!orderToDelete) return;
-  
-  setDeleting(true);
-  try {
-    await deleteOrderAPI(orderToDelete.id);
-    toast({ title: "Success", description: "Order deleted successfully" });
-    
-    // ✅ Refresh orders list
-    await fetchOrdersFromAPI();
-    
-    // ✅ Refresh customers to update stats
-    await fetchCustomers();
-    
-    // ✅ Close dialog
-    setDeleteDialogOpen(false);
-    setOrderToDelete(null);
-    
-  } catch (err: any) {
-    toast({ title: "Error", description: err.message, variant: "destructive" });
-  } finally {
-    setDeleting(false);
-  }
-};
+  const handleDeleteOrder = async () => {
+    if (!orderToDelete) return;
+
+    setDeleting(true);
+    try {
+      await deleteOrderAPI(orderToDelete.id);
+      toast({ title: "Success", description: "Order deleted successfully" });
+
+      // ✅ Refresh orders list
+      await fetchOrdersFromAPI();
+
+      // ✅ Refresh customers to update stats
+      await fetchCustomers();
+
+      // ✅ Close dialog
+      setDeleteDialogOpen(false);
+      setOrderToDelete(null);
+
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleDeleteAllOrders = async () => {
     setDeleting(true);
@@ -660,29 +660,29 @@ export default function OrdersPage() {
 
   const getFilteredOrders = () => {
     let filtered = orders;
-    
+
     if (search) {
       filtered = filtered.filter(
-        (o) => o.orderNumber?.toLowerCase().includes(search.toLowerCase()) || 
-               o.customerName?.toLowerCase().includes(search.toLowerCase())
+        (o) => o.orderNumber?.toLowerCase().includes(search.toLowerCase()) ||
+          o.customerName?.toLowerCase().includes(search.toLowerCase())
       );
     }
-    
+
     if (activeTab !== "All") {
       filtered = filtered.filter(o => o.status === activeTab);
     }
-    
+
     return filtered;
   };
-  
+
   const filteredOrders = getFilteredOrders();
-  
+
   const totalRevenue = orders.filter(o => o.status !== "Cancelled").reduce((sum, o) => sum + (o.total || 0), 0);
   const totalOrders = orders.length;
   const confirmedOrders = orders.filter(o => o.status === "Confirmed").length;
   const deliveredOrders = orders.filter(o => o.status === "Delivered").length;
   const paidOrders = orders.filter(o => o.paymentStatus === "SUCCESS").length;
-  
+
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString('en-IN', {
       day: '2-digit',
@@ -690,12 +690,12 @@ export default function OrdersPage() {
       year: 'numeric'
     });
   };
-  
+
   const formatTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleTimeString('en-IN', { 
-      hour: '2-digit', 
+    return new Date(timestamp).toLocaleTimeString('en-IN', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: true 
+      hour12: true
     });
   };
 
@@ -720,7 +720,7 @@ export default function OrdersPage() {
   const getRequestStatusDisplay = (orderId: string) => {
     const request = returnRequests[orderId];
     if (!request) return null;
-    
+
     const statusMap: Record<string, { label: string; color: string; icon: any }> = {
       pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
       approved: { label: 'Approved', color: 'bg-green-100 text-green-700', icon: CheckCircle2 },
@@ -729,13 +729,13 @@ export default function OrdersPage() {
       return_received: { label: 'Return Received', color: 'bg-purple-100 text-purple-700', icon: Truck },
       exchange_shipped: { label: 'Exchange Shipped', color: 'bg-indigo-100 text-indigo-700', icon: Truck },
     };
-    
+
     const info = statusMap[request.status] || statusMap.pending;
     const Icon = info.icon;
-    
-    const typeLabel = request.requestType === 'cancel' ? 'Cancellation' : 
-                      request.requestType === 'return' ? 'Return' : 'Exchange';
-    
+
+    const typeLabel = request.requestType === 'cancel' ? 'Cancellation' :
+      request.requestType === 'return' ? 'Return' : 'Exchange';
+
     return {
       type: request.requestType,
       typeLabel,
@@ -749,7 +749,7 @@ export default function OrdersPage() {
       additionalPaymentStatus: request.additionalPaymentStatus,
     };
   };
-  
+
   if (loading && orders.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -760,7 +760,7 @@ export default function OrdersPage() {
       </div>
     );
   }
-  
+
   if (error && orders.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -773,7 +773,7 @@ export default function OrdersPage() {
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -787,9 +787,9 @@ export default function OrdersPage() {
             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowUpRight className="w-4 w-4 mr-2" />}
             Refresh
           </Button>
-          <Button 
-            variant="destructive" 
-            size="sm" 
+          <Button
+            variant="destructive"
+            size="sm"
             onClick={() => setDeleteAllDialogOpen(true)}
             disabled={orders.length === 0 || deleting}
           >
@@ -798,7 +798,7 @@ export default function OrdersPage() {
           </Button>
         </div>
       </div>
-      
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
@@ -847,7 +847,7 @@ export default function OrdersPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-2">
         <Button variant={activeTab === "All" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("All")}>
@@ -855,9 +855,9 @@ export default function OrdersPage() {
           <Badge variant="secondary" className="ml-2">{orders.length}</Badge>
         </Button>
         {statusList.map(status => (
-          <Button 
-            key={status} 
-            variant={activeTab === status ? "default" : "outline"} 
+          <Button
+            key={status}
+            variant={activeTab === status ? "default" : "outline"}
             size="sm"
             onClick={() => setActiveTab(status as StatusFilter)}
           >
@@ -868,18 +868,18 @@ export default function OrdersPage() {
           </Button>
         ))}
       </div>
-      
+
       {/* Search */}
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input 
-          placeholder="Search by order ID or customer name..." 
-          className="pl-9" 
-          value={search} 
-          onChange={(e) => setSearch(e.target.value)} 
+        <Input
+          placeholder="Search by order ID or customer name..."
+          className="pl-9"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
       </div>
-      
+
       {/* Orders List */}
       <div className="space-y-4">
         {filteredOrders.map((order) => {
@@ -893,7 +893,7 @@ export default function OrdersPage() {
           const isProcessingPayment = processingPayment === order.id;
           const isCOD = order.paymentMethod === "COD";
           const hasPaymentId = !!order.paymentId;
-          
+
           return (
             <Card key={order.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-0">
@@ -911,12 +911,12 @@ export default function OrdersPage() {
                       <p className="text-xs text-muted-foreground">{order.items?.length || 0} item(s)</p>
                     </div>
                   </div>
-                  
+
                   <div className="text-center min-w-[100px]">
                     <p className="text-xs text-muted-foreground">Amount</p>
                     <p className="font-bold text-primary text-lg">₹{order.total?.toLocaleString()}</p>
                   </div>
-                  
+
                   <div className="text-center min-w-[130px]">
                     <p className="text-xs text-muted-foreground">Date</p>
                     <div className="flex items-center gap-1 justify-center">
@@ -925,7 +925,7 @@ export default function OrdersPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">{formatTime(order.timestamp)}</p>
                   </div>
-                  
+
                   {/* Payment Section - COD vs Online */}
                   <div className="text-center min-w-[120px]">
                     <p className="text-xs text-muted-foreground">Payment</p>
@@ -955,14 +955,14 @@ export default function OrdersPage() {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex flex-col items-end gap-2 min-w-[180px]">
                     <div className="flex items-center gap-2">
                       <Badge className={`${statusBg} ${statusText} ${statusBorder} border rounded-full px-3 py-1.5`}>
                         <StatusIcon className="w-3.5 h-3.5 mr-1.5" />
                         {order.status}
                       </Badge>
-                      
+
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="outline" size="sm" disabled={isUpdating} className="gap-1">
@@ -989,9 +989,9 @@ export default function OrdersPage() {
                           <DropdownMenuItem onClick={() => handleStatusChange(order.id, "Delivered")}>
                             <CheckCircle2 className="w-4 h-4 mr-2 text-green-500" /> Delivered
                           </DropdownMenuItem>
-                          
+
                           <DropdownMenuSeparator />
-                          
+
                           <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground sticky top-0 bg-white z-10">
                             <RefreshCw className="w-3 h-3 inline mr-1 text-purple-500" /> Return Timeline
                           </DropdownMenuLabel>
@@ -1019,9 +1019,9 @@ export default function OrdersPage() {
                           <DropdownMenuItem onClick={() => handleStatusChange(order.id, "Return Refund Completed")}>
                             <CheckCircle2 className="w-4 h-4 mr-2 text-green-500" /> 8. Refund Completed
                           </DropdownMenuItem>
-                          
+
                           <DropdownMenuSeparator />
-                          
+
                           <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground sticky top-0 bg-white z-10">
                             <RotateCcw className="w-3 h-3 inline mr-1 text-cyan-500" /> Exchange Timeline
                           </DropdownMenuLabel>
@@ -1052,9 +1052,9 @@ export default function OrdersPage() {
                           <DropdownMenuItem onClick={() => handleStatusChange(order.id, "Exchange Delivered")}>
                             <Home className="w-4 h-4 mr-2 text-green-500" /> 9. Delivered
                           </DropdownMenuItem>
-                          
+
                           <DropdownMenuSeparator />
-                          
+
                           <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground sticky top-0 bg-white z-10">
                             <XCircle className="w-3 h-3 inline mr-1 text-red-500" /> Cancellation
                           </DropdownMenuLabel>
@@ -1064,7 +1064,7 @@ export default function OrdersPage() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    
+
                     {/* Request Status Badge with Refund/Exchange Payment Info */}
                     {requestInfo && (
                       <div className="flex flex-col items-end gap-1">
@@ -1099,20 +1099,20 @@ export default function OrdersPage() {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
+                    <Button
+                      size="icon"
+                      variant="ghost"
                       className="hover:bg-primary hover:text-white transition-colors"
                       onClick={() => setSelectedOrder(order)}
                     >
                       <Eye className="w-4 h-4" />
                     </Button>
                     {order.paymentId && (
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
+                      <Button
+                        size="icon"
+                        variant="ghost"
                         className="hover:bg-emerald-500 hover:text-white transition-colors"
                         onClick={() => fetchPaymentDetails(order)}
                       >
@@ -1120,26 +1120,26 @@ export default function OrdersPage() {
                       </Button>
                     )}
                     {/* Refund Button - Only for online paid return requests */}
-                    {returnRequests[order.id]?.requestType === 'return' && 
-                     returnRequests[order.id]?.status === 'approved' && 
-                     returnRequests[order.id]?.refundStatus !== 'completed' &&
-                     !isCOD && hasPaymentId && (
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        className="hover:bg-yellow-500 hover:text-white transition-colors"
-                        onClick={() => {
-                          setSelectedRefundOrder(order);
-                          setRefundAmount(order.total || 0);
-                          setRefundDialogOpen(true);
-                        }}
-                      >
-                        <Undo2 className="w-4 h-4" />
-                      </Button>
-                    )}
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
+                    {returnRequests[order.id]?.requestType === 'return' &&
+                      returnRequests[order.id]?.status === 'approved' &&
+                      returnRequests[order.id]?.refundStatus !== 'completed' &&
+                      !isCOD && hasPaymentId && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="hover:bg-yellow-500 hover:text-white transition-colors"
+                          onClick={() => {
+                            setSelectedRefundOrder(order);
+                            setRefundAmount(order.total || 0);
+                            setRefundDialogOpen(true);
+                          }}
+                        >
+                          <Undo2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    <Button
+                      size="icon"
+                      variant="ghost"
                       className="hover:bg-red-500 hover:text-white transition-colors"
                       onClick={() => {
                         setOrderToDelete(order);
@@ -1155,14 +1155,14 @@ export default function OrdersPage() {
           );
         })}
       </div>
-      
+
       {filteredOrders.length === 0 && (
         <div className="text-center py-12">
           <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground">No orders found</p>
         </div>
       )}
-      
+
       {/* ========== ORDER DETAILS DIALOG ========== */}
       <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -1215,25 +1215,23 @@ export default function OrdersPage() {
                 const request = returnRequests[selectedOrder.id];
                 if (request) {
                   return (
-                    <div className={`rounded-lg p-4 ${
-                      request.requestType === 'cancel' ? 'bg-red-50 border border-red-200' :
-                      request.requestType === 'return' ? 'bg-purple-50 border border-purple-200' :
-                      'bg-cyan-50 border border-cyan-200'
-                    }`}>
+                    <div className={`rounded-lg p-4 ${request.requestType === 'cancel' ? 'bg-red-50 border border-red-200' :
+                        request.requestType === 'return' ? 'bg-purple-50 border border-purple-200' :
+                          'bg-cyan-50 border border-cyan-200'
+                      }`}>
                       <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
                         <RefreshCw className="w-4 h-4" />
                         {request.requestType === 'cancel' ? 'Cancellation Request' :
-                         request.requestType === 'return' ? 'Return Request' : 'Exchange Request'}
+                          request.requestType === 'return' ? 'Return Request' : 'Exchange Request'}
                       </h3>
                       <div className="flex flex-wrap gap-4 text-sm">
                         <div>
                           <span className="text-muted-foreground">Status:</span>
-                          <Badge className={`ml-2 ${
-                            request.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                            request.status === 'approved' ? 'bg-green-100 text-green-700' :
-                            request.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                            'bg-blue-100 text-blue-700'
-                          }`}>
+                          <Badge className={`ml-2 ${request.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                              request.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                request.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                  'bg-blue-100 text-blue-700'
+                            }`}>
                             {request.status.toUpperCase()}
                           </Badge>
                         </div>
@@ -1253,9 +1251,9 @@ export default function OrdersPage() {
                             {request.additionalPaymentStatus === 'SUCCESS' ? (
                               <Badge className="ml-2 bg-green-100 text-green-700">Paid</Badge>
                             ) : (
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 className="ml-2 h-6 text-xs"
                                 onClick={() => {
                                   setSelectedExchangeOrder(selectedOrder);
@@ -1276,58 +1274,58 @@ export default function OrdersPage() {
               })()}
 
               {/* Products Section */}
-             {/* Products Section */}
-<div>
-  <h3 className="text-lg font-semibold mb-3">Products</h3>
-  <div className="space-y-3">
-    {selectedOrder.items?.map((item, idx) => {
-      // Get size from item
-      const productSize = item.size || item.selectedSize || '';
-      
-      return (
-        <div key={idx} className="border rounded-lg p-4">
-          <div className="flex gap-4">
-            <div className="flex-shrink-0">
-              {item.image ? (
-                <img 
-                  src={item.image} 
-                  alt={item.name || item.productName || 'Product'} 
-                  className="w-20 h-20 object-cover rounded-lg"
-                  onError={(e) => {
-                    e.currentTarget.src = 'https://placehold.co/200x200/3b82f6/white?text=No+Image';
-                  }}
-                />
-              ) : (
-                <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Package className="w-8 h-8 text-gray-400" />
+              {/* Products Section */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Products</h3>
+                <div className="space-y-3">
+                  {selectedOrder.items?.map((item, idx) => {
+                    // Get size from item
+                    const productSize = item.size || item.selectedSize || '';
+
+                    return (
+                      <div key={idx} className="border rounded-lg p-4">
+                        <div className="flex gap-4">
+                          <div className="flex-shrink-0">
+                            {item.image ? (
+                              <img
+                                src={item.image}
+                                alt={item.name || item.productName || 'Product'}
+                                className="w-20 h-20 object-cover rounded-lg"
+                                onError={(e) => {
+                                  e.currentTarget.src = 'https://placehold.co/200x200/3b82f6/white?text=No+Image';
+                                }}
+                              />
+                            ) : (
+                              <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
+                                <Package className="w-8 h-8 text-gray-400" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-semibold">{item.name || item.productName || 'Product'}</p>
+                            <p className="text-sm text-muted-foreground">SKU: {item.skuCode || item.sku || item.productSku || "N/A"}</p>
+
+                            {/* Size Badge */}
+                            {productSize && productSize !== '' ? (
+                              <span className="inline-flex items-center gap-1 text-xs bg-green-100 px-2 py-0.5 rounded-full text-green-700 font-medium mt-1">
+                                Size: {productSize}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-500 mt-1">
+                                📏 Size: Standard
+                              </span>
+                            )}
+
+                            <p className="text-sm mt-2">
+                              Qty: {item.quantity} × ₹{item.price?.toLocaleString()} = ₹{(item.price * item.quantity).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
-            <div className="flex-1">
-              <p className="font-semibold">{item.name || item.productName || 'Product'}</p>
-              <p className="text-sm text-muted-foreground">SKU: {item.skuCode || item.sku || item.productSku || "N/A"}</p>
-              
-              {/* Size Badge */}
-              {productSize && productSize !== '' ? (
-                <span className="inline-flex items-center gap-1 text-xs bg-green-100 px-2 py-0.5 rounded-full text-green-700 font-medium mt-1">
-                  Size: {productSize}
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-500 mt-1">
-                  📏 Size: Standard
-                </span>
-              )}
-              
-              <p className="text-sm mt-2">
-                Qty: {item.quantity} × ₹{item.price?.toLocaleString()} = ₹{(item.price * item.quantity).toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </div>
-      );
-    })}
-  </div>
-</div>
+              </div>
 
               {/* Price Breakdown */}
               <div className="border rounded-lg p-4">

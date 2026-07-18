@@ -1,6 +1,6 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-const getAuthToken = () => localStorage.getItem('token');
+const getAuthToken = () => localStorage.getItem('admin_token') || localStorage.getItem('token');
 
 export interface Notification {
   _id: string;

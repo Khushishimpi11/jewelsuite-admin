@@ -15,24 +15,24 @@ type StatusFilter = "All" | "Active" | "Inactive";
 const formatOrderDate = (order: any) => {
   // Try multiple possible date fields from your backend
   const dateValue = order?.createdAt || order?.date || order?.orderDate || order?.updatedAt;
-  
+
   if (!dateValue) {
     return 'Date not recorded';
   }
-  
+
   try {
     const date = new Date(dateValue);
-    
+
     // Check if date is valid
     if (isNaN(date.getTime())) {
       return 'Date pending';
     }
-    
+
     // Format: 17 Apr 2026
-    return date.toLocaleDateString('en-IN', { 
-      day: 'numeric', 
-      month: 'short', 
-      year: 'numeric' 
+    return date.toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
     });
   } catch (error) {
     return 'Date error';
@@ -40,7 +40,7 @@ const formatOrderDate = (order: any) => {
 };
 
 export default function CustomersPage() {
-  const { 
+  const {
     customers: apiCustomers,
     orders: allOrders,
     fetchCustomers,
@@ -53,7 +53,7 @@ export default function CustomersPage() {
     isAuthenticated,
     token
   } = useJewelleryCMS();
-  
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [viewCustomer, setViewCustomer] = useState<Customer | null>(null);
@@ -70,7 +70,7 @@ export default function CustomersPage() {
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [fetchingOrdersForCustomer, setFetchingOrdersForCustomer] = useState(false);
-  
+
   const initialFetchDone = useRef(false);
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
@@ -85,27 +85,27 @@ export default function CustomersPage() {
   // Get orders for a specific customer from allOrders context
   const getCustomerOrdersFromContext = (customer: Customer): Order[] => {
     if (!allOrders || !Array.isArray(allOrders)) return [];
-    
+
     return allOrders.filter((order: Order) => {
-      const matchesCustomerId = 
-        order.customerId === customer.id || 
+      const matchesCustomerId =
+        order.customerId === customer.id ||
         order.customerId === customer._id ||
-        order.userId === customer.id || 
+        order.userId === customer.id ||
         order.userId === customer._id;
-      
-      const matchesEmail = 
-        order.customerEmail === customer.email || 
+
+      const matchesEmail =
+        order.customerEmail === customer.email ||
         order.email === customer.email ||
         (order.customer && order.customer.email === customer.email);
-      
-      const matchesName = 
+
+      const matchesName =
         order.customerName === customer.name ||
         (order.customer && order.customer.name === customer.name);
-      
-      const matchesPhone = 
+
+      const matchesPhone =
         order.customerPhone === customer.phone ||
         (order.customer && order.customer.phone === customer.phone);
-      
+
       return matchesCustomerId || matchesEmail || matchesName || matchesPhone;
     });
   };
@@ -116,10 +116,10 @@ export default function CustomersPage() {
       setLoading(false);
       return;
     }
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       // Fetch customers only (orders will come from context)
       console.log("👥 Fetching customers...");
@@ -129,49 +129,49 @@ export default function CustomersPage() {
           "Authorization": `Bearer ${token}`
         }
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.message || "Failed to fetch customers");
       }
-      
+
       const customersArray = data.customers || [];
       console.log(`👥 Retrieved ${customersArray.length} customers`);
-      
+
       // Format customers with their order information from context
       const formattedCustomers = customersArray.map((c: any) => {
         // Get orders for this customer from the allOrders context
-        const customerOrdersList = allOrders && Array.isArray(allOrders) 
+        const customerOrdersList = allOrders && Array.isArray(allOrders)
           ? allOrders.filter((order: Order) => {
-              const matchesById = 
-                order.customerId === c._id || 
-                order.userId === c._id ||
-                (order.customer && (order.customer._id === c._id || order.customer.id === c._id));
-              
-              const matchesByEmail = 
-                order.customerEmail === c.email || 
-                order.email === c.email ||
-                (order.customer && order.customer.email === c.email);
-              
-              const matchesByName = 
-                order.customerName === c.name ||
-                (order.customer && order.customer.name === c.name);
-              
-              const matchesByPhone = 
-                order.customerPhone === c.phone || 
-                order.customerPhone === c.mobile ||
-                (order.customer && (order.customer.phone === c.phone || order.customer.phone === c.mobile));
-              
-              return matchesById || matchesByEmail || matchesByName || matchesByPhone;
-            })
+            const matchesById =
+              order.customerId === c._id ||
+              order.userId === c._id ||
+              (order.customer && (order.customer._id === c._id || order.customer.id === c._id));
+
+            const matchesByEmail =
+              order.customerEmail === c.email ||
+              order.email === c.email ||
+              (order.customer && order.customer.email === c.email);
+
+            const matchesByName =
+              order.customerName === c.name ||
+              (order.customer && order.customer.name === c.name);
+
+            const matchesByPhone =
+              order.customerPhone === c.phone ||
+              order.customerPhone === c.mobile ||
+              (order.customer && (order.customer.phone === c.phone || order.customer.phone === c.mobile));
+
+            return matchesById || matchesByEmail || matchesByName || matchesByPhone;
+          })
           : [];
-        
-        const totalSpent = customerOrdersList.reduce((sum: number, order: Order) => 
+
+        const totalSpent = customerOrdersList.reduce((sum: number, order: Order) =>
           sum + (order.totalAmount || order.total || 0), 0);
-        
+
         const address = c.address || {};
-        
+
         return {
           id: c._id,
           _id: c._id,
@@ -196,12 +196,12 @@ export default function CustomersPage() {
           phoneVerified: c.phoneVerified || false
         };
       });
-      
+
       setLocalCustomers(formattedCustomers);
-      
+
       const totalOrdersCount = formattedCustomers.reduce((sum, c) => sum + (c.orderCount || 0), 0);
       console.log(`✅ Successfully loaded ${formattedCustomers.length} customers with ${totalOrdersCount} orders`);
-      
+
     } catch (err: any) {
       console.error("Error fetching customers:", err);
       setError(err.message);
@@ -214,11 +214,11 @@ export default function CustomersPage() {
   // Delete all customers
   const deleteAllCustomers = async () => {
     if (!token) return;
-    
+
     setDeletingAll(true);
     let deletedCount = 0;
     let failedCount = 0;
-    
+
     try {
       for (const customer of localCustomers) {
         try {
@@ -229,7 +229,7 @@ export default function CustomersPage() {
               "Authorization": `Bearer ${token}`
             }
           });
-          
+
           if (response.ok) {
             deletedCount++;
           } else {
@@ -239,14 +239,14 @@ export default function CustomersPage() {
           failedCount++;
         }
       }
-      
+
       await fetchCustomersFromAPI();
-      
-      toast({ 
-        title: "Bulk Delete Complete", 
+
+      toast({
+        title: "Bulk Delete Complete",
         description: `Deleted ${deletedCount} customers${failedCount > 0 ? `, ${failedCount} failed` : ''}`,
       });
-      
+
       setDeleteAllDialogOpen(false);
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -258,7 +258,7 @@ export default function CustomersPage() {
   // Update customer in API
   const updateCustomerInAPI = async (id: string, customerData: any) => {
     if (!token) throw new Error("Not authenticated");
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/auth/customers/${id}`, {
         method: "PUT",
@@ -273,10 +273,10 @@ export default function CustomersPage() {
           isActive: customerData.isActive,
         }),
       });
-      
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
-      
+
       await fetchCustomersFromAPI();
       return data;
     } catch (err: any) {
@@ -287,7 +287,7 @@ export default function CustomersPage() {
   // Delete customer from API
   const deleteCustomerFromAPI = async (id: string) => {
     if (!token) throw new Error("Not authenticated");
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/auth/customers/${id}`, {
         method: "DELETE",
@@ -296,10 +296,10 @@ export default function CustomersPage() {
           "Authorization": `Bearer ${token}`
         }
       });
-      
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
-      
+
       await fetchCustomersFromAPI();
       return data;
     } catch (err: any) {
@@ -310,7 +310,7 @@ export default function CustomersPage() {
   // Toggle customer status
   const toggleCustomerStatusInAPI = async (id: string, isActive: boolean) => {
     if (!token) throw new Error("Not authenticated");
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/auth/customers/${id}`, {
         method: "PUT",
@@ -320,10 +320,10 @@ export default function CustomersPage() {
         },
         body: JSON.stringify({ isActive }),
       });
-      
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
-      
+
       await fetchCustomersFromAPI();
       return data;
     } catch (err: any) {
@@ -335,18 +335,18 @@ export default function CustomersPage() {
   const viewCustomerDetails = async (customer: Customer) => {
     setViewCustomer(customer);
     setFetchingOrdersForCustomer(true);
-    
+
     try {
       // Get orders from context
       const orders = getCustomerOrdersFromContext(customer);
       console.log(`Found ${orders.length} orders for customer ${customer.name}`);
       setCustomerOrders(orders);
-      
+
       // Update the customer's order count in local state
       if (orders.length > 0) {
-        setLocalCustomers(prev => 
-          prev.map(c => 
-            c.id === customer.id 
+        setLocalCustomers(prev =>
+          prev.map(c =>
+            c.id === customer.id
               ? { ...c, orderCount: orders.length, totalSpent: orders.reduce((sum, o) => sum + (o.total || o.totalAmount || 0), 0), orders: orders }
               : c
           )
@@ -377,7 +377,7 @@ export default function CustomersPage() {
         },
         isActive: formData.isActive
       });
-      
+
       setEditCustomer(null);
       toast({ title: "Success!", description: "Customer updated successfully" });
     } catch (err: any) {
@@ -488,19 +488,19 @@ export default function CustomersPage() {
 
   // Filter customers
   let filtered = localCustomers.filter((c) => {
-    const matchesSearch = 
-      c.name?.toLowerCase().includes(search.toLowerCase()) || 
-      c.email?.toLowerCase().includes(search.toLowerCase()) || 
+    const matchesSearch =
+      c.name?.toLowerCase().includes(search.toLowerCase()) ||
+      c.email?.toLowerCase().includes(search.toLowerCase()) ||
       c.phone?.includes(search) ||
       c.customerId?.toLowerCase().includes(search.toLowerCase());
-    
+
     let matchesStatus = true;
     if (statusFilter === "Active") {
       matchesStatus = c.isActive !== false;
     } else if (statusFilter === "Inactive") {
       matchesStatus = c.isActive === false;
     }
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -624,11 +624,11 @@ export default function CustomersPage() {
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search by name, email, phone or customer ID..." 
-            className="pl-9" 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
+          <Input
+            placeholder="Search by name, email, phone or customer ID..."
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <div className="flex gap-2">
@@ -676,15 +676,15 @@ export default function CustomersPage() {
                   </Button>
                 </div>
               </div>
-              
+
               <h3 className="font-bold text-lg mb-2">{customer.name}</h3>
-              
+
               <div className="space-y-1.5 mt-2 text-xs text-muted-foreground">
                 <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5" /> {customer.email}</p>
                 <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5" /> {customer.phone || "Not provided"}</p>
                 <p className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5" /> {formatAddress(customer.address)}</p>
               </div>
-              
+
               <div className="flex items-center justify-between mt-4 pt-4 border-t">
                 <div className="text-center flex-1">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Spent</p>
@@ -836,7 +836,7 @@ export default function CustomersPage() {
                       <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
                         <ShoppingCart className="w-4 h-4" /> Order History ({customerOrders.length})
                       </h3>
-                      
+
                       {customerOrders.length > 0 ? (
                         <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
                           {customerOrders.map((order, idx) => (
@@ -864,7 +864,7 @@ export default function CustomersPage() {
                                     </div>
                                   )}
                                 </div>
-                                
+
                                 {/* Right side - Order Details */}
                                 <div className="flex-1 flex items-center justify-between">
                                   <div className="space-y-1">
@@ -878,20 +878,20 @@ export default function CustomersPage() {
                                         {copiedId === `order-${order.id}` ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
                                       </button>
                                     </div>
-                                    
+
                                     {/* Date and Items - Fixed Date Display */}
                                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                                       <span className="flex items-center gap-1">
-                                        <Calendar className="w-3 h-3" /> 
+                                        <Calendar className="w-3 h-3" />
                                         {formatOrderDate(order)}
                                       </span>
                                       <span className="flex items-center gap-1">
-                                        <Package className="w-3 h-3" /> 
+                                        <Package className="w-3 h-3" />
                                         {order.items?.length || 0} items
                                       </span>
                                     </div>
                                   </div>
-                                  
+
                                   {/* Amount and Status */}
                                   <div className="text-right">
                                     <p className="text-lg font-bold text-primary">₹{(order.total || order.totalAmount || 0).toLocaleString()}</p>
