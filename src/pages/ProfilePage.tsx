@@ -78,7 +78,7 @@ export default function ProfilePage() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xl font-display font-bold truncate">{admin?.name || "Admin"}</p>
-              <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5"><Mail className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{admin?.email || "—"}</span></p>
+              <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5"><Mail className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{admin?.email || "ï¿½"}</span></p>
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <Badge variant="secondary" className="gap-1 text-xs rounded-lg"><ShieldCheck className="h-3 w-3" />{admin?.role === "admin" ? "Super Admin" : admin?.role || "Admin"}</Badge>
                 {admin?.isGoogleUser && <Badge variant="outline" className="text-xs rounded-lg gap-1"><span className="text-blue-500 font-bold text-xs">G</span>Google Account</Badge>}
