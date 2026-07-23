@@ -88,6 +88,7 @@ interface Product {
   name: string;
   price: number;
   purchasePrice: number;
+  gst?: number;
   category: string | Category;
   categoryId?: string;
   categoryName?: string;
@@ -156,6 +157,14 @@ const genderOptions = ["Women", "Men", "Unisex", "Kids"];
 const occasionOptions = ["Wedding", "Anniversary", "Birthday", "Engagement", "Casual", "Festival"];
 const materialOptions = ["18K Gold", "22K Gold", "24K Gold", "Platinum", "Silver", "Rose Gold", "White Gold"];
 const stoneTypeOptions = ["Diamond", "Ruby", "Emerald", "Sapphire", "Pearl", "No Stone"];
+const gstOptions = [
+  { label: "0% (Exempt)", value: 0 },
+  { label: "3% (Jewellery Standard)", value: 3 },
+  { label: "5%", value: 5 },
+  { label: "12%", value: 12 },
+  { label: "18%", value: 18 },
+  { label: "28%", value: 28 },
+];
 
 const getSkuPrefix = (category: string): string => {
   const prefixMap: Record<string, string> = {
@@ -264,6 +273,7 @@ const ProductForm = ({
     name: product?.name || "",
     price: product?.price?.toString() || "",
     purchasePrice: product?.purchasePrice?.toString() || "",
+    gst: product?.gst !== undefined ? product.gst : 3,
     category: getCategoryName(product?.category),
     brand: "JewelsKart Original",
     stock: product?.stock?.toString() || "",
@@ -489,6 +499,7 @@ const ProductForm = ({
       ...form,
       price: parseFloat(form.price) || 0,
       purchasePrice: parseFloat(form.purchasePrice) || 0,
+      gst: form.gst,
       stock: parseInt(form.stock) || 0,
       weight: parseFloat(form.weight) || 0,
       brand: "JewelsKart Original",
@@ -700,7 +711,7 @@ const ProductForm = ({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Selling Price (₹) *</Label>
+            <Label>Selling Price (₹) * <span className="text-xs text-muted-foreground">(GST Inclusive)</span></Label>
             <Input
               type="number"
               className="h-11 rounded-xl w-full"
@@ -719,6 +730,36 @@ const ProductForm = ({
               placeholder="Enter purchase price"
             />
           </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>GST (%)</Label>
+            <Select
+              value={form.gst.toString()}
+              onValueChange={v => setForm({ ...form, gst: parseInt(v) })}
+            >
+              <SelectTrigger className="h-11 rounded-xl w-full">
+                <SelectValue placeholder="Select GST rate" />
+              </SelectTrigger>
+              <SelectContent>
+                {gstOptions.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value.toString()}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {form.price && (
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">GST Breakdown (Preview)</Label>
+              <div className="h-11 rounded-xl border bg-muted/30 px-3 flex flex-col justify-center text-sm">
+                <span className="text-muted-foreground">Excl. GST: ₹{(parseFloat(form.price || "0") / (1 + form.gst / 100)).toFixed(2)}</span>
+                <span className="text-primary font-medium">GST ({form.gst}%): ₹{(parseFloat(form.price || "0") - parseFloat(form.price || "0") / (1 + form.gst / 100)).toFixed(2)}</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1602,12 +1643,22 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center p-3 bg-primary/5 rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-1">Selling Price</p>
+                    <p className="text-xs text-muted-foreground mb-1">Selling Price (Incl. GST)</p>
                     <p className="text-xl font-bold text-primary">₹{(product.price || 0).toLocaleString()}</p>
                   </div>
                   <div className="text-center p-3 bg-secondary/30 rounded-lg">
                     <p className="text-xs text-muted-foreground mb-1">Purchase Price</p>
                     <p className="text-lg font-semibold">₹{(product.purchasePrice || 0).toLocaleString()}</p>
+                  </div>
+                  <div className="text-center p-3 bg-blue-500/10 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">GST Rate</p>
+                    <p className="text-lg font-semibold text-blue-600">{product.gst ?? 3}%</p>
+                  </div>
+                  <div className="text-center p-3 bg-orange-500/10 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">GST Amount</p>
+                    <p className="text-lg font-semibold text-orange-600">
+                      ₹{((product.price || 0) - (product.price || 0) / (1 + (product.gst ?? 3) / 100)).toFixed(2)}
+                    </p>
                   </div>
                   <div className="text-center p-3 bg-emerald-500/10 rounded-lg">
                     <p className="text-xs text-muted-foreground mb-1">Profit Amount</p>

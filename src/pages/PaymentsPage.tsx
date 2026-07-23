@@ -727,11 +727,11 @@ export default function PaymentsPage() {
                   </div>
                 ))}
                 <div className="flex justify-between text-xs text-muted-foreground mt-2 pt-2 border-t">
-                  <span>Subtotal</span>
-                  <span>₹{invoiceTxn.subtotal?.toLocaleString() || 0}</span>
+                  <span>Product Price (Excl. GST)</span>
+                  <span>₹{(invoiceTxn.totalExclGst || ((invoiceTxn.subtotal || 0) - (invoiceTxn.tax || 0)))?.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Tax (GST)</span>
+                  <span>GST (Tax)</span>
                   <span>₹{invoiceTxn.tax?.toLocaleString() || 0}</span>
                 </div>
                 {invoiceTxn.discount > 0 && (
@@ -745,7 +745,7 @@ export default function PaymentsPage() {
                   <span>₹{invoiceTxn.shippingCharge?.toLocaleString() || 0}</span>
                 </div>
                 <div className="flex justify-between text-sm font-bold border-t mt-2 pt-2">
-                  <span>Total</span>
+                  <span>Grand Total</span>
                   <span className="text-accent">₹{invoiceTxn.total?.toLocaleString()}</span>
                 </div>
               </div>

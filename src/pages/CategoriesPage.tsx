@@ -3,14 +3,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger, 
-  DialogDescription, 
-  DialogFooter 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+  DialogFooter
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -19,14 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  FolderTree, 
-  Package, 
-  Loader2, 
-  AlertTriangle, 
+import {
+  Plus,
+  Edit,
+  Trash2,
+  FolderTree,
+  Package,
+  Loader2,
+  AlertTriangle,
   X,
   ChevronRight,
   ChevronDown,
@@ -58,7 +58,7 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Dialog states
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -67,22 +67,22 @@ export default function CategoriesPage() {
   const [parentCategory, setParentCategory] = useState<string>("none");
   const [featured, setFeatured] = useState(false);
   const [saving, setSaving] = useState(false);
-  
+
   // Delete dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [deleting, setDeleting] = useState(false);
-  
+
   // Delete All dialog
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
-  
+
   // Expand/Collapse for hierarchy
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   // API Base URL
   const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-  
+
   // Get token from localStorage
   const getToken = () => localStorage.getItem("admin_token") || localStorage.getItem("customer_token");
 
@@ -98,9 +98,9 @@ export default function CategoriesPage() {
       const response = await fetch(`${API_BASE_URL}/categories/sync-counts`, {
         headers: getAuthHeaders(),
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         console.log("✅ Category counts synced");
       }
@@ -113,18 +113,18 @@ export default function CategoriesPage() {
   const fetchCategories = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/categories`, {
         headers: getAuthHeaders(),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.message || "Failed to fetch categories");
       }
-      
+
       setCategories(data.categories || []);
     } catch (err: any) {
       console.error("Fetch categories error:", err);
@@ -155,20 +155,20 @@ export default function CategoriesPage() {
       // First check if there are any categories with products
       const categoriesWithProducts = categories.filter(c => (c.productCount || 0) > 0);
       if (categoriesWithProducts.length > 0) {
-        toast({ 
-          title: "Cannot Delete", 
-          description: `${categoriesWithProducts.length} categories have products. Delete products first.`, 
-          variant: "destructive" 
+        toast({
+          title: "Cannot Delete",
+          description: `${categoriesWithProducts.length} categories have products. Delete products first.`,
+          variant: "destructive"
         });
         setDeleteAllDialogOpen(false);
         return;
       }
-      
+
       // Delete each category one by one
       for (const category of categories) {
         await deleteCategoryAPI(category._id);
       }
-      
+
       toast({ title: "Success", description: "All categories deleted successfully" });
       await handleRefresh();
       setDeleteAllDialogOpen(false);
@@ -183,7 +183,7 @@ export default function CategoriesPage() {
   const createCategory = async (data: any) => {
     const token = getToken();
     if (!token) throw new Error("Not authenticated");
-    
+
     const response = await fetch(`${API_BASE_URL}/categories/admin/create`, {
       method: "POST",
       headers: {
@@ -192,13 +192,13 @@ export default function CategoriesPage() {
       },
       body: JSON.stringify(data),
     });
-    
+
     const result = await response.json();
-    
+
     if (!response.ok) {
       throw new Error(result.message || "Failed to create category");
     }
-    
+
     return result;
   };
 
@@ -206,7 +206,7 @@ export default function CategoriesPage() {
   const updateCategory = async (id: string, data: any) => {
     const token = getToken();
     if (!token) throw new Error("Not authenticated");
-    
+
     const response = await fetch(`${API_BASE_URL}/categories/admin/${id}`, {
       method: "PUT",
       headers: {
@@ -215,13 +215,13 @@ export default function CategoriesPage() {
       },
       body: JSON.stringify(data),
     });
-    
+
     const result = await response.json();
-    
+
     if (!response.ok) {
       throw new Error(result.message || "Failed to update category");
     }
-    
+
     return result;
   };
 
@@ -229,7 +229,7 @@ export default function CategoriesPage() {
   const deleteCategoryAPI = async (id: string) => {
     const token = getToken();
     if (!token) throw new Error("Not authenticated");
-    
+
     const response = await fetch(`${API_BASE_URL}/categories/admin/${id}`, {
       method: "DELETE",
       headers: {
@@ -237,13 +237,13 @@ export default function CategoriesPage() {
         "Authorization": `Bearer ${token}`,
       },
     });
-    
+
     const result = await response.json();
-    
+
     if (!response.ok) {
       throw new Error(result.message || "Failed to delete category");
     }
-    
+
     return result;
   };
 
@@ -288,10 +288,10 @@ export default function CategoriesPage() {
       const hasSubcategories = subcategories.length > 0;
       const isExpanded = expandedCategories.has(category._id);
       const productCount = category.productCount || 0;
-      
+
       return (
         <div key={category._id}>
-          <div 
+          <div
             className={`flex items-center justify-between p-4 hover:bg-muted/20 transition-colors border-b border-border/30`}
             style={{ paddingLeft: `${level * 24 + 16}px` }}
           >
@@ -309,11 +309,11 @@ export default function CategoriesPage() {
                 </button>
               )}
               {!hasSubcategories && <div className="w-5" />}
-              
+
               <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
                 <FolderTree className="h-5 w-5 text-primary" />
               </div>
-              
+
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-foreground">
@@ -339,27 +339,27 @@ export default function CategoriesPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="flex gap-1">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 rounded-lg hover:bg-primary/10 text-primary" 
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg hover:bg-primary/10 text-primary"
                 onClick={() => handleEdit(category)}
               >
                 <Edit className="h-3.5 w-3.5" />
               </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 rounded-lg hover:bg-destructive/10 text-destructive" 
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg hover:bg-destructive/10 text-destructive"
                 onClick={() => openDeleteDialog(category)}
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
-          
+
           {hasSubcategories && isExpanded && (
             <div className="ml-4">
               {renderCategoryTree(subcategories, level + 1)}
@@ -375,18 +375,18 @@ export default function CategoriesPage() {
       toast({ title: "Error", description: "Category name is required", variant: "destructive" });
       return;
     }
-    
+
     setSaving(true);
     try {
       const parentValue = parentCategory === "none" ? null : parentCategory;
-      
+
       const categoryData = {
         name: name.trim().toLowerCase(),
         description: description || undefined,
         parentCategory: parentValue,
         featured: featured,
       };
-      
+
       if (editingId) {
         await updateCategory(editingId, categoryData);
         toast({ title: "Success", description: "Category updated successfully" });
@@ -394,7 +394,7 @@ export default function CategoriesPage() {
         await createCategory(categoryData);
         toast({ title: "Success", description: "Category created successfully" });
       }
-      
+
       await handleRefresh();
       setOpen(false);
       resetForm();
@@ -416,7 +416,7 @@ export default function CategoriesPage() {
 
   const handleDelete = async () => {
     if (!categoryToDelete) return;
-    
+
     setDeleting(true);
     try {
       await deleteCategoryAPI(categoryToDelete._id);
@@ -434,10 +434,10 @@ export default function CategoriesPage() {
   const openDeleteDialog = (category: Category) => {
     const productCount = category.productCount || 0;
     if (productCount > 0) {
-      toast({ 
-        title: "Cannot Delete", 
-        description: `Category has ${productCount} products. Delete or move products first.`, 
-        variant: "destructive" 
+      toast({
+        title: "Cannot Delete",
+        description: `Category has ${productCount} products. Delete or move products first.`,
+        variant: "destructive"
       });
       return;
     }
@@ -482,10 +482,10 @@ export default function CategoriesPage() {
   }
 
   return (
-    <motion.div 
-      className="space-y-6 p-6" 
-      initial={{ opacity: 0, y: 10 }} 
-      animate={{ opacity: 1, y: 0 }} 
+    <motion.div
+      className="space-y-6 p-6"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
       {/* Header with 3 buttons */}
@@ -496,36 +496,36 @@ export default function CategoriesPage() {
             {categories.length} categories • {totalProductsInCategories} total products • {activeCategories} active
           </p>
         </div>
-        
+
         <div className="flex gap-2">
           {/* Refresh Button */}
-          <Button 
-            variant="outline" 
-            size="default" 
-            onClick={handleRefresh} 
+          <Button
+            variant="outline"
+            size="default"
+            onClick={handleRefresh}
             disabled={refreshing}
             className="gap-2 rounded-xl"
           >
             {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Refresh
           </Button>
-          
+
           {/* Delete All Button */}
-          <Button 
-            variant="destructive" 
-            size="default" 
-            onClick={() => setDeleteAllDialogOpen(true)} 
+          <Button
+            variant="destructive"
+            size="default"
+            onClick={() => setDeleteAllDialogOpen(true)}
             disabled={categories.length === 0 || deletingAll}
             className="gap-2 rounded-xl"
           >
             {deletingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <TrashIcon className="h-4 w-4" />}
             Delete All
           </Button>
-          
+
           {/* Add Category Button */}
-          <Dialog open={open} onOpenChange={(v) => { 
-            setOpen(v); 
-            if (!v) resetForm(); 
+          <Dialog open={open} onOpenChange={(v) => {
+            setOpen(v);
+            if (!v) resetForm();
           }}>
             <DialogTrigger asChild>
               <Button className="gap-2 rounded-xl">
@@ -542,18 +542,18 @@ export default function CategoriesPage() {
                   {editingId ? "Update the category details below." : "Create a new product category to organize your inventory."}
                 </DialogDescription>
               </DialogHeader>
-              
+
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label>Category Name *</Label>
-                  <Input 
-                    value={name} 
-                    onChange={e => setName(e.target.value)} 
+                  <Input
+                    value={name}
+                    onChange={e => setName(e.target.value)}
                     placeholder="e.g., Rings, Necklaces, Earrings"
                     className="rounded-xl"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>Parent Category (Optional)</Label>
                   <Select value={parentCategory} onValueChange={setParentCategory}>
@@ -570,17 +570,17 @@ export default function CategoriesPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>Description (Optional)</Label>
-                  <Input 
-                    value={description} 
-                    onChange={e => setDescription(e.target.value)} 
+                  <Input
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
                     placeholder="Short description of the category"
                     className="rounded-xl"
                   />
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -594,7 +594,7 @@ export default function CategoriesPage() {
                   </Label>
                 </div>
               </div>
-              
+
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpen(false)} disabled={saving} className="rounded-xl">
                   Cancel
@@ -646,7 +646,7 @@ export default function CategoriesPage() {
             </div>
           </div>
         </div>
-        
+
         {categories.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
             <FolderTree className="w-12 h-12 text-primary/30 mb-4" />
@@ -672,7 +672,7 @@ export default function CategoriesPage() {
               Are you sure you want to delete this category? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          
+
           {categoryToDelete && (
             <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20">
               <div className="flex items-center gap-3">
@@ -689,7 +689,7 @@ export default function CategoriesPage() {
               </div>
             </div>
           )}
-          
+
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleting} className="rounded-xl">
               <X className="w-4 h-4 mr-2" />
@@ -715,14 +715,14 @@ export default function CategoriesPage() {
               Are you sure you want to delete all {categories.length} categories? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20">
             <p className="text-sm text-destructive">
-              ⚠️ Warning: This will delete all {categories.length} categories. 
+              ⚠️ Warning: This will delete all {categories.length} categories.
               Categories with products cannot be deleted. Delete products first.
             </p>
           </div>
-          
+
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setDeleteAllDialogOpen(false)} disabled={deletingAll} className="rounded-xl">
               <X className="w-4 h-4 mr-2" />

@@ -476,6 +476,8 @@ export default function OrdersPage() {
         })) || [],
         subtotal: o.subtotal || 0,
         tax: o.tax || 0,
+        gstAmount: o.gstAmount || o.tax || 0,
+        totalExclGst: o.totalExclGst || (o.subtotal ? o.subtotal - (o.tax || 0) : 0),
         discount: o.discount || 0,
         shippingCharge: o.shippingCharge || 0,
         total: o.totalAmount || o.total || 0,
@@ -1332,20 +1334,20 @@ export default function OrdersPage() {
                 <h3 className="text-lg font-semibold mb-3">Price Breakdown</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>Subtotal:</span>
-                    <span>₹{selectedOrder.subtotal?.toLocaleString() || 0}</span>
+                    <span>Product Price (Excl. GST):</span>
+                    <span>₹{(selectedOrder.totalExclGst || (selectedOrder.subtotal - (selectedOrder.tax || 0)))?.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>GST (Tax):</span>
+                    <span>₹{selectedOrder.tax?.toLocaleString() || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Shipping:</span>
                     <span>₹{selectedOrder.shippingCharge?.toLocaleString() || 0}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Tax (GST):</span>
-                    <span>₹{selectedOrder.tax?.toLocaleString() || 0}</span>
-                  </div>
                   <div className="border-t pt-2 mt-2">
                     <div className="flex justify-between font-bold">
-                      <span>Total:</span>
+                      <span>Grand Total:</span>
                       <span className="text-primary">₹{selectedOrder.total?.toLocaleString()}</span>
                     </div>
                   </div>
