@@ -605,9 +605,11 @@ export default function OrdersPage() {
     }
   }, [token, isAuthenticated]);
 
+  // ✅ Refresh function - same as Products page
   const handleRefresh = () => {
     initialFetchDone.current = false;
     fetchOrdersFromAPI();
+    fetchCustomers();
   };
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
@@ -785,8 +787,9 @@ export default function OrdersPage() {
           <p className="text-muted-foreground text-sm mt-1">Track and manage customer orders</p>
         </div>
         <div className="flex gap-2">
+          {/* ✅ Refresh Button - Same as Products page */}
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowUpRight className="w-4 w-4 mr-2" />}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             Refresh
           </Button>
           <Button
@@ -1218,8 +1221,8 @@ export default function OrdersPage() {
                 if (request) {
                   return (
                     <div className={`rounded-lg p-4 ${request.requestType === 'cancel' ? 'bg-red-50 border border-red-200' :
-                        request.requestType === 'return' ? 'bg-purple-50 border border-purple-200' :
-                          'bg-cyan-50 border border-cyan-200'
+                      request.requestType === 'return' ? 'bg-purple-50 border border-purple-200' :
+                        'bg-cyan-50 border border-cyan-200'
                       }`}>
                       <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
                         <RefreshCw className="w-4 h-4" />
@@ -1230,9 +1233,9 @@ export default function OrdersPage() {
                         <div>
                           <span className="text-muted-foreground">Status:</span>
                           <Badge className={`ml-2 ${request.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                              request.status === 'approved' ? 'bg-green-100 text-green-700' :
-                                request.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                                  'bg-blue-100 text-blue-700'
+                            request.status === 'approved' ? 'bg-green-100 text-green-700' :
+                              request.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                'bg-blue-100 text-blue-700'
                             }`}>
                             {request.status.toUpperCase()}
                           </Badge>
@@ -1275,7 +1278,6 @@ export default function OrdersPage() {
                 return null;
               })()}
 
-              {/* Products Section */}
               {/* Products Section */}
               <div>
                 <h3 className="text-lg font-semibold mb-3">Products</h3>

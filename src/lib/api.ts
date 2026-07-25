@@ -16,11 +16,18 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
+      const isSessionRevoked = error.response?.data?.sessionRevoked;
       localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_data');
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      if (isSessionRevoked) {
+        window.dispatchEvent(new CustomEvent('admin_session_revoked'));
+        window.location.href = '/login?session_expired=1';
+      } else {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

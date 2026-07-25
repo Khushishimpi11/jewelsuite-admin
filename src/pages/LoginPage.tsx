@@ -30,6 +30,21 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, authLoading, navigate]);
 
+  // Show session expired toast when redirected from a revoked session
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('session_expired') === '1') {
+      toast({
+        title: "Session Expired",
+        description: "Your session was logged out from another device. Please login again.",
+        variant: "destructive",
+      });
+      // Remove the query param without reload
+      window.history.replaceState({}, '', '/login');
+    }
+  }, []);
+
+
   // Google Sign-In Handler for Admin
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {

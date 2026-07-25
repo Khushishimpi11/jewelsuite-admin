@@ -6,11 +6,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Save, Lock, UserCircle, ShieldCheck, Mail, Loader2, Eye, EyeOff } from "lucide-react";
+import { Save, Lock, UserCircle, ShieldCheck, Mail, Loader2, Eye, EyeOff, Laptop, Smartphone, LogOut, ShieldAlert, RefreshCw } from "lucide-react";
+import { useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useJewelleryCMS } from "@/context/JewelleryCMSContext";
+import { adminFetch } from "@/utils/sessionInterceptor";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+interface DeviceSession {
+  deviceId: string;
+  deviceName: string;
+  deviceType: string;
+  ipAddress: string;
+  lastActive: string;
+  loginTime: string;
+  isCurrentDevice: boolean;
+}
 
 export default function ProfilePage() {
   const { admin, token } = useJewelleryCMS();
@@ -24,6 +36,71 @@ export default function ProfilePage() {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+
+  // Active Devices State
+  const [devices, setDevices] = useState<DeviceSession[]>([]);
+  const [loadingDevices, setLoadingDevices] = useState(false);
+
+  const fetchDevices = async () => {
+    if (!token) return;
+    setLoadingDevices(true);
+    try {
+      const res = await adminFetch(`${API_BASE_URL}/auth/active-devices`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDevices(data.devices || []);
+      }
+    } catch (err) {
+      console.error("Error fetching devices:", err);
+    } finally {
+      setLoadingDevices(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDevices();
+  }, [token]);
+
+  const handleRevokeDevice = async (deviceId: string) => {
+    if (!token) return;
+    try {
+      const res = await adminFetch(`${API_BASE_URL}/auth/active-devices/${deviceId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: "Device logged out", description: "The session was revoked." });
+        fetchDevices();
+      } else {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleRevokeAllOtherDevices = async () => {
+    if (!token) return;
+    try {
+      const res = await adminFetch(`${API_BASE_URL}/auth/active-devices-all-other`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: "Sessions Revoked", description: "All other devices logged out successfully." });
+        fetchDevices();
+      } else {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  };
+
 
   const handleSaveName = async () => {
     if (!name.trim()) { toast({ title: "Name cannot be empty", variant: "destructive" }); return; }
@@ -162,6 +239,91 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       )}
+
+
+      {/* Active Devices & Sessions Card */}
+      <Card className="glass-card rounded-2xl">
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <div className="space-y-1">
+            <CardTitle className="text-base font-display flex items-center gap-2">
+              <Laptop className="h-4 w-4 text-accent" /> Active Devices & Sessions
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Devices currently logged into your admin account.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={fetchDevices} disabled={loadingDevices} title="Refresh Devices" className="h-8 w-8 rounded-lg">
+              <RefreshCw className={`h-4 w-4 ${loadingDevices ? 'animate-spin' : ''}`} />
+            </Button>
+            {devices.length > 1 && (
+              <Button variant="outline" size="sm" onClick={handleRevokeAllOtherDevices} className="text-xs rounded-lg border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 gap-1 h-8">
+                <LogOut className="h-3.5 w-3.5" /> Logout All Other Devices
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loadingDevices ? (
+            <div className="py-8 text-center text-muted-foreground flex flex-col items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <p className="text-xs">Loading active devices...</p>
+            </div>
+          ) : devices.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              <ShieldAlert className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
+              <p className="text-xs font-medium">No active device sessions found.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {devices.map((device) => (
+                <div
+                  key={device.deviceId}
+                  className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all ${device.isCurrentDevice
+                      ? 'border-primary/40 bg-primary/5 dark:bg-primary/10'
+                      : 'border-border/60 bg-secondary/20'
+                    }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                      {device.deviceType === 'Mobile' || device.deviceType === 'Tablet' ? (
+                        <Smartphone className="h-4 w-4" />
+                      ) : (
+                        <Laptop className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-xs font-semibold truncate">{device.deviceName}</p>
+                        {device.isCurrentDevice && (
+                          <Badge className="bg-green-500/15 text-green-700 dark:text-green-400 border-none text-[10px] px-2 py-0">
+                            Current Device
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        IP: <span className="font-mono">{device.ipAddress}</span> • Last active: {new Date(device.lastActive).toLocaleString('en-IN')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {!device.isCurrentDevice && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRevokeDevice(device.deviceId)}
+                      className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 gap-1 shrink-0 h-8"
+                    >
+                      <LogOut className="h-3.5 w-3.5" /> Logout
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }
+

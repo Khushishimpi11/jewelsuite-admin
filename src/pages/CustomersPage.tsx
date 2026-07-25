@@ -57,13 +57,11 @@ export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [viewCustomer, setViewCustomer] = useState<Customer | null>(null);
-  const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
-  const [updating, setUpdating] = useState(false);
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [localCustomers, setLocalCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -255,35 +253,6 @@ export default function CustomersPage() {
     }
   };
 
-  // Update customer in API
-  const updateCustomerInAPI = async (id: string, customerData: any) => {
-    if (!token) throw new Error("Not authenticated");
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/customers/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: customerData.name,
-          phone: customerData.phone,
-          address: customerData.address,
-          isActive: customerData.isActive,
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
-
-      await fetchCustomersFromAPI();
-      return data;
-    } catch (err: any) {
-      throw err;
-    }
-  };
-
   // Delete customer from API
   const deleteCustomerFromAPI = async (id: string) => {
     if (!token) throw new Error("Not authenticated");
@@ -360,33 +329,6 @@ export default function CustomersPage() {
     }
   };
 
-  // Handle edit customer
-  const handleEditCustomer = async () => {
-    if (!editCustomer) return;
-    setUpdating(true);
-    try {
-      await updateCustomerInAPI(editCustomer.id, {
-        name: formData.name,
-        phone: formData.phone,
-        address: {
-          street: formData.street,
-          city: formData.city,
-          state: formData.state,
-          pincode: formData.pincode,
-          country: formData.country
-        },
-        isActive: formData.isActive
-      });
-
-      setEditCustomer(null);
-      toast({ title: "Success!", description: "Customer updated successfully" });
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    } finally {
-      setUpdating(false);
-    }
-  };
-
   // Handle delete customer
   const handleDeleteCustomer = async () => {
     if (!customerToDelete) return;
@@ -411,22 +353,6 @@ export default function CustomersPage() {
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     }
-  };
-
-  // Open edit dialog
-  const openEditDialog = (customer: Customer) => {
-    setEditCustomer(customer);
-    setFormData({
-      name: customer.name,
-      email: customer.email,
-      phone: customer.phone || "",
-      street: customer.address?.street || "",
-      city: customer.address?.city || "",
-      state: customer.address?.state || "",
-      pincode: customer.address?.pincode || "",
-      country: customer.address?.country || "India",
-      isActive: customer.isActive !== false
-    });
   };
 
   // Handle refresh
@@ -510,19 +436,6 @@ export default function CustomersPage() {
   const inactiveCustomers = localCustomers.filter(c => c.isActive === false).length;
   const totalRevenue = (allOrders && Array.isArray(allOrders) ? allOrders.filter((o: Order) => o.status !== "Cancelled").reduce((sum, o) => sum + (o.total || o.totalAmount || 0), 0) : 0);
   const totalOrders = (allOrders && Array.isArray(allOrders) ? allOrders.length : 0);
-
-  // Form state
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    street: "",
-    city: "",
-    state: "",
-    pincode: "",
-    country: "India",
-    isActive: true
-  });
 
   if (loading && localCustomers.length === 0) {
     return (
@@ -667,9 +580,6 @@ export default function CustomersPage() {
                 <div className="flex gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
                   <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary hover:text-white transition-all" onClick={() => viewCustomerDetails(customer)} title="View Details">
                     <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-blue-500 hover:text-white transition-all" onClick={() => openEditDialog(customer)} title="Edit Customer">
-                    <Edit className="h-4 w-4" />
                   </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-red-500 hover:text-white transition-all" onClick={() => { setCustomerToDelete(customer); setDeleteDialogOpen(true); }} title="Delete Customer">
                     <Trash2 className="h-4 w-4" />
@@ -917,73 +827,13 @@ export default function CustomersPage() {
               </div>
 
               {/* Footer Actions */}
-              <div className="border-t p-4 bg-muted/20 flex justify-end gap-3 rounded-b-2xl">
+              <div className="border-t p-4 bg-muted/20 flex justify-end rounded-b-2xl">
                 <Button variant="outline" onClick={() => setViewCustomer(null)}>
                   Close
-                </Button>
-                <Button onClick={() => { setViewCustomer(null); openEditDialog(viewCustomer); }} className="bg-primary hover:bg-primary/90">
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Customer
                 </Button>
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Customer Dialog */}
-      <Dialog open={!!editCustomer} onOpenChange={() => setEditCustomer(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Customer</DialogTitle>
-            <DialogDescription>Update customer details below.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium">Full Name</label>
-              <Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Email</label>
-              <Input value={formData.email} disabled className="bg-muted" />
-              <p className="text-xs text-muted-foreground mt-1">Email cannot be changed</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Phone</label>
-              <Input value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} placeholder="Not provided" />
-            </div>
-            <div className="border-t pt-3">
-              <p className="text-sm font-medium mb-2">Address</p>
-              <div className="space-y-3">
-                <Input placeholder="Street address" value={formData.street} onChange={e => setFormData({ ...formData, street: e.target.value })} />
-                <div className="grid grid-cols-2 gap-3">
-                  <Input placeholder="City" value={formData.city} onChange={e => setFormData({ ...formData, city: e.target.value })} />
-                  <Input placeholder="State" value={formData.state} onChange={e => setFormData({ ...formData, state: e.target.value })} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Input placeholder="Pincode" value={formData.pincode} onChange={e => setFormData({ ...formData, pincode: e.target.value })} />
-                  <Input placeholder="Country" value={formData.country} onChange={e => setFormData({ ...formData, country: e.target.value })} />
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="isActive"
-                checked={formData.isActive}
-                onChange={e => setFormData({ ...formData, isActive: e.target.checked })}
-                className="rounded border-gray-300"
-              />
-              <label htmlFor="isActive" className="text-sm font-medium">Active Customer</label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditCustomer(null)}>Cancel</Button>
-            <Button onClick={handleEditCustomer} disabled={updating}>
-              {updating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Save Changes
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1004,7 +854,7 @@ export default function CustomersPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
             <Button variant="destructive" onClick={handleDeleteCustomer} disabled={deleting}>
-              {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Delete Customer
             </Button>
           </DialogFooter>
@@ -1031,7 +881,7 @@ export default function CustomersPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteAllDialogOpen(false)}>Cancel</Button>
             <Button variant="destructive" onClick={deleteAllCustomers} disabled={deletingAll}>
-              {deletingAll && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {deletingAll && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Delete All Customers
             </Button>
           </DialogFooter>
