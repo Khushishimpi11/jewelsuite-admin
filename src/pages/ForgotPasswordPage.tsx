@@ -8,7 +8,7 @@ import { Loader2, ArrowLeft, Mail } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.png";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'development' ? 'http://localhost:5000/api' : 'https://jewelskart-backend-gt7z.onrender.com/api');
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
