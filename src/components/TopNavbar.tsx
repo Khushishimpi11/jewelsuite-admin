@@ -76,6 +76,15 @@ export function TopNavbar() {
     }
   };
 
+  const handleClearAll = async () => {
+    const success = await notificationApi.clearAllNotifications();
+    if (success) {
+      setNotifications([]);
+      setUnreadCount(0);
+      toast({ title: "Cleared", description: "All notifications cleared" });
+    }
+  };
+
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const deletedNotif = notifications.find(n => n._id === id);
@@ -194,17 +203,22 @@ export function TopNavbar() {
             <div className="sticky top-0 bg-white z-10 p-3 border-b">
               <div className="flex justify-between items-center">
                 <DropdownMenuLabel className="text-base p-0">Notifications</DropdownMenuLabel>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   {unreadCount > 0 && (
-                    <Button variant="ghost" size="sm" onClick={handleMarkAllAsRead} className="h-7 text-xs gap-1">
-                      <CheckCheck className="h-3 w-3" /> Mark all read
+                    <Button variant="ghost" size="sm" onClick={handleMarkAllAsRead} className="h-7 text-xs gap-1 px-2">
+                      <CheckCheck className="h-3 w-3" /> Read all
+                    </Button>
+                  )}
+                  {notifications.length > 0 && (
+                    <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-7 text-xs gap-1 text-destructive hover:text-destructive px-2">
+                      <Trash2 className="h-3 w-3" /> Clear all
                     </Button>
                   )}
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     onClick={goToNotificationsPage} 
-                    className="h-7 text-xs gap-1 text-primary"
+                    className="h-7 text-xs gap-1 text-primary px-2"
                   >
                     View all
                     <ArrowRight className="h-3 w-3" />

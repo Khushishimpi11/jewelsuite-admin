@@ -71,6 +71,17 @@ const notificationApi = {
       });
       return res.ok;
     } catch { return false; }
+  },
+
+  clearAllNotifications: async () => {
+    try {
+      const token = getAuthToken();
+      const res = await fetch(`${API_URL}/notifications/admin/notifications/clear-all`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      return res.ok;
+    } catch { return false; }
   }
 };
 
@@ -119,6 +130,15 @@ export default function NotificationsPage() {
       setNotifications(prev => prev.filter(n => n._id !== id));
       if (!deleted?.isRead) setUnreadCount(prev => Math.max(0, prev - 1));
       toast({ title: "Deleted", description: "Notification removed" });
+    }
+  };
+
+  const handleClearAll = async () => {
+    const success = await notificationApi.clearAllNotifications();
+    if (success) {
+      setNotifications([]);
+      setUnreadCount(0);
+      toast({ title: "Cleared", description: "All notifications cleared successfully" });
     }
   };
 
@@ -221,12 +241,20 @@ export default function NotificationsPage() {
           <h1 className="text-2xl font-display font-bold">CMS Notifications</h1>
           <p className="text-muted-foreground text-sm font-sans">Monitor orders, inventory status, payments, and system health</p>
         </div>
-        {unreadCount > 0 && (
-          <Button onClick={handleMarkAllAsRead} className="gap-2 rounded-xl" variant="outline">
-            <CheckCheck className="h-4 w-4" />
-            Mark all read ({unreadCount})
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {unreadCount > 0 && (
+            <Button onClick={handleMarkAllAsRead} className="gap-2 rounded-xl" variant="outline">
+              <CheckCheck className="h-4 w-4" />
+              Mark all read ({unreadCount})
+            </Button>
+          )}
+          {notifications.length > 0 && (
+            <Button onClick={handleClearAll} className="gap-2 rounded-xl" variant="outline">
+              <Trash2 className="h-4 w-4 text-destructive" />
+              <span className="text-destructive">Clear all</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex bg-secondary/50 p-1 rounded-xl w-full justify-start overflow-x-auto gap-1">

@@ -96,6 +96,24 @@ const notificationApi = {
     }
   },
 
+  // Clear all admin notifications
+  clearAllNotifications: async (): Promise<boolean> => {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/notifications/admin/notifications/clear-all`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error clearing all notifications:', error);
+      return false;
+    }
+  },
+
   // Send notification from frontend
   sendNotification: async (data: {
     type: string;

@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'development' ? 'http://localhost:5000/api' : 'https://jewelskart-backend-gt7z.onrender.com/api');
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // ==================== TYPES & INTERFACES ====================
 
@@ -987,7 +987,7 @@ export function JewelleryCMSProvider({ children }: { children: ReactNode }) {
         }
       });
       if (!response.ok) throw new Error("Failed to download backup");
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");

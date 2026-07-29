@@ -8,7 +8,7 @@ import { Loader2, ArrowLeft, Mail } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.png";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'development' ? 'http://localhost:5000/api' : 'https://jewelskart-backend-gt7z.onrender.com/api');
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -18,12 +18,12 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email) {
       toast({ title: "Error", description: "Please enter your email", variant: "destructive" });
       return;
     }
-    
+
     setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/auth/admin/forgot-password`, {
@@ -31,19 +31,19 @@ export default function ForgotPasswordPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.message || "Failed to send reset link");
       }
-      
+
       setIsSent(true);
       toast({
         title: "Success",
         description: data.message || "Password reset link sent to your email",
       });
-      
+
     } catch (error: any) {
       toast({
         title: "Error",
@@ -62,9 +62,9 @@ export default function ForgotPasswordPage() {
           <CardHeader className="text-center space-y-1 pb-2 pt-5">
             <div className="flex justify-center">
               <div className="h-16 w-16 rounded-full bg-primary flex items-center justify-center shadow-md">
-                <img 
-                  src={logo} 
-                  alt="JewelsKart" 
+                <img
+                  src={logo}
+                  alt="JewelsKart"
                   className="h-18 w-18 object-contain brightness-110 contrast-125"
                   style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))" }}
                 />
@@ -77,7 +77,7 @@ export default function ForgotPasswordPage() {
               </p>
             </div>
           </CardHeader>
-          
+
           <CardContent className="px-5 pb-5">
             {!isSent ? (
               <form onSubmit={handleSubmit} className="space-y-3">
@@ -85,10 +85,10 @@ export default function ForgotPasswordPage() {
                   <Label className="text-[11px] font-medium">Email Address</Label>
                   <div className="relative">
                     <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input 
-                      type="email" 
-                      value={email} 
-                      onChange={(e) => setEmail(e.target.value)} 
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       placeholder="admin@jewelskart.com"
                       className="h-8 text-xs rounded-md pl-8"
                       autoFocus
@@ -96,8 +96,8 @@ export default function ForgotPasswordPage() {
                   </div>
                 </div>
 
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="w-full h-8 text-xs rounded-md font-semibold mt-2"
                   disabled={isLoading}
                 >
@@ -106,8 +106,8 @@ export default function ForgotPasswordPage() {
                 </Button>
 
                 <div className="text-center pt-2">
-                  <Link 
-                    to="/login" 
+                  <Link
+                    to="/login"
                     className="text-[10px] text-muted-foreground hover:text-primary transition-all inline-flex items-center gap-1"
                   >
                     <ArrowLeft className="h-3 w-3" />
@@ -123,7 +123,7 @@ export default function ForgotPasswordPage() {
                   </p>
                   <p className="text-sm font-semibold mt-1">{email}</p>
                 </div>
-                
+
                 <p className="text-[10px] text-muted-foreground">
                   Click the link in the email to reset your password.
                   The link will expire in 15 minutes.
