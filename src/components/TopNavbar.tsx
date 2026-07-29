@@ -82,6 +82,8 @@ export function TopNavbar() {
       setNotifications([]);
       setUnreadCount(0);
       toast({ title: "Cleared", description: "All notifications cleared" });
+    } else {
+      toast({ title: "Error", description: "Failed to clear notifications. Please try again.", variant: "destructive" });
     }
   };
 
