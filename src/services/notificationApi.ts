@@ -14,7 +14,7 @@ export interface Notification {
 }
 
 const notificationApi = {
-  // Get all admin notifications
+  // Get admin notifications for Bell Dropdown (respects bellClearedAt)
   getAdminNotifications: async (limit = 50, skip = 0): Promise<{ 
     success: boolean; 
     notifications: Notification[]; 
@@ -38,6 +38,33 @@ const notificationApi = {
       return data;
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      return { success: false, notifications: [], unreadCount: 0, totalCount: 0 };
+    }
+  },
+
+  // Get ALL admin notifications for Notifications Page (historical record)
+  getAdminNotificationsAll: async (limit = 100, skip = 0): Promise<{ 
+    success: boolean; 
+    notifications: Notification[]; 
+    unreadCount: number;
+    totalCount: number;
+  }> => {
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        return { success: false, notifications: [], unreadCount: 0, totalCount: 0 };
+      }
+      
+      const response = await fetch(`${API_URL}/notifications/admin/notifications/all?limit=${limit}&skip=${skip}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching all notifications:', error);
       return { success: false, notifications: [], unreadCount: 0, totalCount: 0 };
     }
   },

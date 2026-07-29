@@ -26,12 +26,12 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const getAuthToken = () => localStorage.getItem('admin_token');
 
 const notificationApi = {
-  getAdminNotifications: async (limit = 50) => {
+  getAdminNotifications: async (limit = 100) => {
     try {
       const token = getAuthToken();
       if (!token) return { success: false, notifications: [], unreadCount: 0 };
       
-      const res = await fetch(`${API_URL}/notifications/admin/notifications?limit=${limit}`, {
+      const res = await fetch(`${API_URL}/notifications/admin/notifications/all?limit=${limit}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       return await res.json();
