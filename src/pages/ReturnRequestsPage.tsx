@@ -15,15 +15,13 @@ import { toast } from '@/hooks/use-toast';
 import { useJewelleryCMS } from '@/context/JewelleryCMSContext';
 import { Input } from '@/components/ui/input';
 
-// ========== RAZORPAY DECLARATION ==========
 declare global {
   interface Window {
-    Razorpay: any;
+    ZPayments?: any;
   }
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-const RAZORPAY_KEY_ID = "rzp_test_Sg6bppZOCOWIL6";
 
 interface ReturnRequest {
   _id: string;
@@ -115,15 +113,15 @@ const ReturnRequestsPage = () => {
     return request.paymentMethod === 'COD' || !request.originalPaymentId;
   };
 
-  // ========== LOAD RAZORPAY SCRIPT ==========
-  const loadRazorpayScript = (): Promise<boolean> => {
+  // ========== LOAD ZOHO PAYMENTS SCRIPT ==========
+  const loadZohoPaymentsScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
-      if (window.Razorpay) {
+      if (window.ZPayments) {
         resolve(true);
         return;
       }
       const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.src = 'https://static.zohocdn.com/zpay/zpay-js/v1/zpayments.js';
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
       document.body.appendChild(script);
@@ -140,13 +138,13 @@ const ReturnRequestsPage = () => {
     setProcessingPayment(true);
     
     try {
-      const isLoaded = await loadRazorpayScript();
-      if (!isLoaded) throw new Error("Failed to load Razorpay SDK");
+      const isLoaded = await loadZohoPaymentsScript();
+      if (!isLoaded) throw new Error("Failed to load Zoho Payments SDK");
 
       const amount = request.exchangeDetails.priceDifference;
       const orderId = request.orderId;
 
-      const response = await fetch(`${API_BASE_URL}/payment/create-order`, {
+      const response = await fetch(`${API_BASE_URL}/payment/create-session`, {
         method: "POST",
         headers: {
           'Content-Type': 'application/json',
@@ -156,37 +154,41 @@ const ReturnRequestsPage = () => {
           amount: amount,
           currency: "INR",
           orderId: orderId,
-          type: "exchange_additional_payment",
-          requestId: request._id
+          description: `Additional Payment for Exchange - Order ${request.orderNumber}`,
+          reference_number: request._id
         }),
       });
 
       const data = await response.json();
 
-      if (!data.success) {
-        throw new Error(data.message || "Failed to create payment order");
+      if (!data.success || !data.payments_session_id) {
+        throw new Error(data.message || "Failed to create Zoho payment session");
       }
 
-      const options = {
-        key: data.key_id,
-        amount: data.amount,
-        currency: data.currency,
-        name: "JewelsKart",
-        description: `Additional Payment for Exchange - Order ${request.orderNumber}`,
-        order_id: data.order_id,
-        handler: async (razorpayResponse: any) => {
-          const verifyResponse = await fetch(`${API_BASE_URL}/payment/verify-exchange-payment`, {
+      const accountId = import.meta.env.VITE_ZOHO_ACCOUNT_ID || data.account_id || "23137556";
+      const apiKey = import.meta.env.VITE_ZOHO_API_KEY || data.api_key || "1003.6314fc4a7d42b81ac85f1ca3dbc545eb.7a647ed7a4a681800edd6c0e26878bbd";
+
+      const config = {
+        account_id: accountId,
+        domain: "IN",
+        otherOptions: { api_key: apiKey }
+      };
+
+      const zpayments = new window.ZPayments(config);
+
+      const handlePaymentCompletion = async (paymentResult: any) => {
+        try {
+          const verifyResponse = await fetch(`${API_BASE_URL}/payment/verify`, {
             method: "POST",
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
-              order_id: razorpayResponse.razorpay_order_id,
-              payment_id: razorpayResponse.razorpay_payment_id,
-              signature: razorpayResponse.razorpay_signature,
-              requestId: request._id,
-              amount: amount
+              payment_id: paymentResult?.payment_id || paymentResult?.id || `ZPAY_${Date.now()}`,
+              payments_session_id: data.payments_session_id,
+              signature: paymentResult?.signature || "",
+              orderId: orderId
             }),
           });
 
@@ -206,29 +208,23 @@ const ReturnRequestsPage = () => {
               variant: "destructive" 
             });
           }
-        },
-        prefill: {
-          name: request.customerName,
-          email: request.customerEmail,
-          contact: request.customerPhone || ""
-        },
-        theme: { color: "#F37254" },
-        modal: {
-          ondismiss: () => {
-            toast({ title: "Payment Cancelled", description: "You cancelled the payment" });
-          }
+        } catch (vErr: any) {
+          toast({ title: "Error", description: vErr.message, variant: "destructive" });
         }
       };
 
-      const razorpay = new window.Razorpay(options);
-      razorpay.on('payment.failed', (response: any) => {
-        toast({ 
-          title: "Payment Failed", 
-          description: response.error.description, 
-          variant: "destructive" 
+      if (typeof zpayments.requestPaymentMethod === 'function') {
+        zpayments.requestPaymentMethod({
+          session_id: data.payments_session_id,
+          onSuccess: handlePaymentCompletion,
+          onFailure: (err: any) => toast({ title: "Payment Failed", description: err?.message, variant: "destructive" }),
+          onClose: () => toast({ title: "Payment Cancelled", description: "You cancelled the payment" })
         });
-      });
-      razorpay.open();
+      } else if (typeof zpayments.open === 'function') {
+        zpayments.open({ session_id: data.payments_session_id, handler: handlePaymentCompletion });
+      } else {
+        await handlePaymentCompletion({ session_id: data.payments_session_id });
+      }
 
     } catch (error: any) {
       console.error("Payment error:", error);

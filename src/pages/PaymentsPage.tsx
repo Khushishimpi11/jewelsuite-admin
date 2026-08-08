@@ -50,7 +50,7 @@ const PaymentStatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-interface RazorpayPaymentDetails {
+interface ZohoPaymentDetails {
   id: string;
   amount: number;
   currency: string;
@@ -79,9 +79,9 @@ export default function PaymentsPage() {
   const [localTransactions, setLocalTransactions] = useState<any[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   
-  // Razorpay payment details state
+  // Zoho payment details state
   const [paymentDetailsDialogOpen, setPaymentDetailsDialogOpen] = useState(false);
-  const [selectedPaymentDetails, setSelectedPaymentDetails] = useState<RazorpayPaymentDetails | null>(null);
+  const [selectedPaymentDetails, setSelectedPaymentDetails] = useState<ZohoPaymentDetails | null>(null);
   const [loadingPaymentDetails, setLoadingPaymentDetails] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -105,7 +105,7 @@ export default function PaymentsPage() {
     setViewTxn(null);
   };
 
-  // Fetch Razorpay payment details
+  // Fetch Zoho payment details
   const fetchPaymentDetails = async (paymentId: string) => {
     if (!paymentId) {
       toast({ title: "Error", description: "No payment ID found", variant: "destructive" });
@@ -171,7 +171,7 @@ export default function PaymentsPage() {
     return [];
   };
 
-  // Generate transactions from orders with Razorpay payment IDs
+  // Generate transactions from orders with Zoho payment IDs
   useEffect(() => {
     const transactions = orders.map(order => {
       // Map payment status to display status
@@ -384,7 +384,7 @@ export default function PaymentsPage() {
                             variant="ghost" 
                             size="icon" 
                             className="h-8 w-8 rounded-lg hover:bg-emerald-500/10" 
-                            title="View Razorpay Payment Details" 
+                            title="View Zoho Payment Details" 
                             onClick={() => fetchPaymentDetails(t.fullPaymentId)}
                           >
                             <Receipt className="h-3.5 w-3.5" />
@@ -536,14 +536,14 @@ export default function PaymentsPage() {
                 View Full Order Details
               </Button>
               
-              {/* Razorpay Payment ID Section */}
+              {/* Zoho Payment ID Section */}
               {viewTxn.paymentId && (
                 <div className="border-t pt-3">
-                  <p className="text-xs text-muted-foreground mb-2">Razorpay Payment ID</p>
+                  <p className="text-xs text-muted-foreground mb-2">Zoho Payment ID</p>
                   <div className="flex items-center gap-2 bg-secondary/30 p-2 rounded-lg">
                     <code className="text-xs font-mono flex-1">{viewTxn.paymentId}</code>
-                    <button onClick={() => copyToClipboard(viewTxn.paymentId, 'razorpay-pid')}>
-                      {copiedId === 'razorpay-pid' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                    <button onClick={() => copyToClipboard(viewTxn.paymentId, 'zoho-pid')}>
+                      {copiedId === 'zoho-pid' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                     </button>
                     <Button 
                       size="sm" 
@@ -589,13 +589,13 @@ export default function PaymentsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Razorpay Payment Details Dialog */}
+      {/* Zoho Payment Details Dialog */}
       <Dialog open={paymentDetailsDialogOpen} onOpenChange={setPaymentDetailsDialogOpen}>
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle className="font-display text-xl flex items-center gap-2">
               <Banknote className="w-5 h-5" />
-              Razorpay Payment Details
+              Zoho Payment Details
             </DialogTitle>
           </DialogHeader>
           {loadingPaymentDetails ? (
@@ -609,8 +609,8 @@ export default function PaymentsPage() {
                   <p className="text-sm text-muted-foreground">Payment ID</p>
                   <div className="flex items-center gap-1">
                     <code className="text-xs font-mono">{selectedPaymentDetails.id}</code>
-                    <button onClick={() => copyToClipboard(selectedPaymentDetails.id, 'razorpay-pid-detail')}>
-                      {copiedId === 'razorpay-pid-detail' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                    <button onClick={() => copyToClipboard(selectedPaymentDetails.id, 'zoho-pid-detail')}>
+                      {copiedId === 'zoho-pid-detail' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                     </button>
                   </div>
                 </div>
@@ -670,10 +670,10 @@ export default function PaymentsPage() {
                 <Button 
                   size="sm" 
                   variant="default"
-                  onClick={() => window.open(`https://dashboard.razorpay.com/app/payments/${selectedPaymentDetails.id}`, '_blank')}
+                  onClick={() => window.open(`https://payments.zoho.in`, '_blank')}
                 >
                   <ExternalLink className="w-3 h-3 mr-1" />
-                  View on Razorpay
+                  View on Zoho Payments
                 </Button>
               </div>
             </div>
@@ -714,7 +714,7 @@ export default function PaymentsPage() {
               
               {invoiceTxn.paymentId && (
                 <div className="bg-secondary/20 p-2 rounded-lg">
-                  <p className="text-xs text-muted-foreground">Razorpay Payment ID</p>
+                  <p className="text-xs text-muted-foreground">Zoho Payment ID</p>
                   <code className="text-xs font-mono">{invoiceTxn.paymentId}</code>
                 </div>
               )}

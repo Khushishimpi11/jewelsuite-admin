@@ -30,9 +30,9 @@ export default function SettingsPage() {
   const [whatsAppNumber, setWhatsAppNumber] = useState("");
   const [storeAddress, setStoreAddress] = useState("");
 
-  const [razorpayEnabled, setRazorpayEnabled] = useState(true);
-  const [razorpayKeyId, setRazorpayKeyId] = useState("");
-  const [razorpayKeySecret, setRazorpayKeySecret] = useState("");
+  const [zohoPaymentsEnabled, setZohoPaymentsEnabled] = useState(true);
+  const [zohoAccountId, setZohoAccountId] = useState("23137556");
+  const [zohoApiKey, setZohoApiKey] = useState("");
   const [codEnabled, setCodEnabled] = useState(true);
 
   const [gstNumber, setGstNumber] = useState("");
@@ -64,9 +64,9 @@ export default function SettingsPage() {
       setWhatsAppNumber(settings.whatsAppNumber || "");
       setStoreAddress(settings.storeAddress || "");
 
-      setRazorpayEnabled(settings.razorpayEnabled !== false);
-      setRazorpayKeyId(settings.razorpayKeyId || "");
-      setRazorpayKeySecret(settings.razorpayKeySecret || "");
+      setZohoPaymentsEnabled(settings.zohoPaymentsEnabled !== false);
+      setZohoAccountId(settings.zohoAccountId || "23137556");
+      setZohoApiKey(settings.zohoApiKey || "");
       setCodEnabled(settings.codEnabled !== false);
 
       setGstNumber(settings.gstNumber || "");
@@ -111,9 +111,9 @@ export default function SettingsPage() {
         contactNumber,
         whatsAppNumber,
         storeAddress,
-        razorpayEnabled,
-        razorpayKeyId,
-        razorpayKeySecret,
+        zohoPaymentsEnabled,
+        zohoAccountId,
+        zohoApiKey,
         codEnabled,
         gstNumber,
         panNumber,
@@ -232,21 +232,21 @@ export default function SettingsPage() {
               <div className="p-4 rounded-2xl bg-secondary/30 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label className="text-sm font-semibold">Enable Razorpay Payment Gateway</Label>
-                    <p className="text-xs text-muted-foreground">Accept online payments, credit cards, UPI, net banking</p>
+                    <Label className="text-sm font-semibold">Enable Zoho Payments Gateway</Label>
+                    <p className="text-xs text-muted-foreground">Accept online payments, credit cards, UPI, net banking via Zoho</p>
                   </div>
-                  <Switch checked={razorpayEnabled} onCheckedChange={setRazorpayEnabled} />
+                  <Switch checked={zohoPaymentsEnabled} onCheckedChange={setZohoPaymentsEnabled} />
                 </div>
 
-                {razorpayEnabled && (
+                {zohoPaymentsEnabled && (
                   <motion.div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2" initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}>
                     <div className="space-y-2">
-                      <Label>Razorpay Key ID</Label>
-                      <Input type="password" value={razorpayKeyId} onChange={(e) => setRazorpayKeyId(e.target.value)} className="h-11 rounded-xl font-mono" placeholder="rzp_live_..." />
+                      <Label>Zoho Account ID</Label>
+                      <Input type="text" value={zohoAccountId} onChange={(e) => setZohoAccountId(e.target.value)} className="h-11 rounded-xl font-mono" placeholder="23137556" />
                     </div>
                     <div className="space-y-2">
-                      <Label>Razorpay Key Secret</Label>
-                      <Input type="password" value={razorpayKeySecret} onChange={(e) => setRazorpayKeySecret(e.target.value)} className="h-11 rounded-xl font-mono" placeholder="Secret Key" />
+                      <Label>Zoho API Key</Label>
+                      <Input type="password" value={zohoApiKey} onChange={(e) => setZohoApiKey(e.target.value)} className="h-11 rounded-xl font-mono" placeholder="Zoho API Key" />
                     </div>
                   </motion.div>
                 )}
