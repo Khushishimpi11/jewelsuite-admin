@@ -1,7 +1,13 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return "http://localhost:5000/api";
+  }
+  return import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+};
+const API_BASE_URL = getApiBaseUrl();
 
 // ==================== TYPES & INTERFACES ====================
 

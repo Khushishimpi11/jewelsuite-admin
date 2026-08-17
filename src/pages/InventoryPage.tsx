@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { 
   Search, AlertTriangle, PackageCheck, PackageMinus, Eye, TrendingUp, Package, 
-  X, ZoomIn, Star, IndianRupee, Tag, Info, Weight, Gem,
+  X, ZoomIn, Star, IndianRupee, Tag, Info, Weight, Gem, CheckCircle2,
   Building2, PlusCircle, MinusCircle, History, Clock, Calendar, 
   ArrowUpCircle, ArrowDownCircle, Loader2, Truck, Shield, HeartHandshake,
   Award, BadgeCheck, Medal, Sparkles, GemIcon, Layers, ClipboardList,
@@ -22,9 +22,8 @@ import type { Product } from "@/context/JewelleryCMSContext";
 import { toast } from "@/hooks/use-toast";
 
 const statusColors: Record<string, string> = {
-  "In Stock": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  "Low Stock": "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  "Out of Stock": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  "Made to Order": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  "Currently Unavailable": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
 
 const tagDisplayNames: Record<string, string> = {
@@ -35,11 +34,10 @@ const tagDisplayNames: Record<string, string> = {
   "premium-pick": "Premium Pick"
 };
 
-// Helper function for stock status
-const getStockStatus = (stock: number): "In Stock" | "Low Stock" | "Out of Stock" => {
-  if (stock === 0) return "Out of Stock";
-  if (stock <= 5) return "Low Stock";
-  return "In Stock";
+// Helper function for stock/availability status
+const getStockStatus = (stock: number, item?: any): "Made to Order" | "Currently Unavailable" => {
+  if (item?.isAvailableForOrder === false) return "Currently Unavailable";
+  return "Made to Order";
 };
 
 // ==================== INVENTORY VIEW DIALOG WITH FULL DETAILS ====================
@@ -191,8 +189,8 @@ const InventoryViewDialog = ({
                     <h2 className="text-xl font-bold text-foreground line-clamp-2">{item.name}</h2>
                     <p className="text-xs text-muted-foreground font-mono mt-1">SKU: {item.sku}</p>
                   </div>
-                  <Badge className={`${statusColors[getStockStatus(item.stock)]} shrink-0 px-3 py-1`}>
-                    {getStockStatus(item.stock)}
+                  <Badge className={`${statusColors[getStockStatus(item.stock, item)]} shrink-0 px-3 py-1`}>
+                    {getStockStatus(item.stock, item)}
                   </Badge>
                 </div>
                 
@@ -240,41 +238,23 @@ const InventoryViewDialog = ({
                 </div>
               </div>
 
-              {/* Stock Management */}
+              {/* Availability Management */}
               <div className="space-y-3 p-4 rounded-xl bg-secondary/20 border border-border/20">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Current Stock</p>
-                    <p className="text-3xl font-bold">
-                      {item.stock || 0} <span className="text-base font-normal text-muted-foreground">units</span>
+                    <p className="text-sm font-medium text-muted-foreground">Product Availability</p>
+                    <p className={`text-xl font-extrabold mt-1 ${(item as any).isAvailableForOrder !== false ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {(item as any).isAvailableForOrder !== false ? '✨ Made to Order' : '🚫 Currently Unavailable'}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium text-muted-foreground">Inventory Value</p>
-                    <p className="text-2xl font-bold text-primary">{formatCurrency(inventoryValue)}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Profit Margin</p>
+                    <p className="text-xl font-bold text-primary">{profitMargin}%</p>
                   </div>
                 </div>
-                <Progress value={stockPct} className="h-2" />
-                <p className="text-xs text-muted-foreground">Profit Margin: {profitMargin}%</p>
-                
-                <div className="flex gap-3 pt-2">
-                  <Button 
-                    onClick={() => setShowStockDialog("add")}
-                    className="flex-1 gap-2 h-10 rounded-xl"
-                  >
-                    <PlusCircle className="h-4 w-4" />
-                    Add Stock
-                  </Button>
-                  <Button 
-                    onClick={() => setShowStockDialog("remove")}
-                    className="flex-1 gap-2 h-10 rounded-xl"
-                    variant="outline"
-                    disabled={item.stock === 0}
-                  >
-                    <MinusCircle className="h-4 w-4" />
-                    Remove Stock
-                  </Button>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  JewelsKart products are Made to Order. Orders will be accepted unless marked unavailable by admin.
+                </p>
               </div>
 
               {/* Ring Sizes (if Rings category) */}
@@ -569,7 +549,7 @@ const InventoryViewDialog = ({
                 Product: <span className="font-medium text-foreground">{item?.name}</span>
               </p>
               <p className="text-sm text-muted-foreground">
-                Current Stock: <span className="font-bold text-foreground">{item?.stock || 0} units</span>
+                Availability: <span className={`font-bold ${(item as any)?.isAvailableForOrder !== false ? 'text-emerald-600' : 'text-red-600'}`}>{(item as any)?.isAvailableForOrder !== false ? '✨ Made to Order' : '🚫 Currently Unavailable'}</span>
               </p>
             </div>
             <div className="space-y-2">
@@ -662,8 +642,6 @@ export default function InventoryPage() {
   const { 
     products, 
     updateStock,
-    getLowStockProducts,
-    getOutOfStockCount,
     getInventoryValue,
     loading,
     error
@@ -687,11 +665,11 @@ export default function InventoryPage() {
   
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [stockFilter, setStockFilter] = useState(filterParam === "out" ? "Out of Stock" : filterParam === "low" ? "Low Stock" : "all");
+  const [stockFilter, setStockFilter] = useState(filterParam === "out" ? "Currently Unavailable" : "all");
   const [viewItem, setViewItem] = useState<Product | null>(null);
 
   // Get unique categories from products
-  const categories = [...new Set(products.map(p => p.category))];
+  const categories = [...new Set(products.map(p => typeof p.category === 'string' ? p.category : (p.category as any)?.name || ''))];
 
   // Filter products
   let filtered = products.filter((p) => 
@@ -700,22 +678,18 @@ export default function InventoryPage() {
   );
   
   if (categoryFilter !== "all") {
-    filtered = filtered.filter(p => p.category === categoryFilter);
+    filtered = filtered.filter(p => (typeof p.category === 'string' ? p.category : (p.category as any)?.name) === categoryFilter);
   }
   
   if (stockFilter !== "all") {
-    if (stockFilter === "In Stock") {
-      filtered = filtered.filter(p => p.stock > 5);
-    } else if (stockFilter === "Low Stock") {
-      filtered = filtered.filter(p => p.stock > 0 && p.stock <= 5);
-    } else if (stockFilter === "Out of Stock") {
-      filtered = filtered.filter(p => p.stock === 0);
+    if (stockFilter === "Made to Order") {
+      filtered = filtered.filter(p => (p as any).isAvailableForOrder !== false);
+    } else if (stockFilter === "Currently Unavailable") {
+      filtered = filtered.filter(p => (p as any).isAvailableForOrder === false);
     }
   }
 
   const totalValue = getInventoryValue();
-  const lowStock = getLowStockProducts().length;
-  const outOfStock = getOutOfStockCount();
   const goldInventory = getGoldInventoryValue();
 
   const handleUpdateStock = async (id: string, quantity: number, action: "add" | "remove", notes: string) => {
@@ -761,26 +735,16 @@ export default function InventoryPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-display font-bold">Inventory Management</h1>
-          <p className="text-muted-foreground text-sm font-sans">Track and manage your jewelry stock levels</p>
+          <p className="text-muted-foreground text-sm font-sans">Track and manage your jewelry product availability</p>
         </div>
       </div>
-
-      {lowStock > 0 && (
-        <div className="flex items-center gap-3 p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-          <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
-          <div>
-            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">⚠️ {lowStock} products are low in stock</p>
-            <p className="text-xs text-amber-600 dark:text-amber-400">Review and reorder to avoid stockouts</p>
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Inventory Value", value: totalValue, prefix: "₹", icon: TrendingUp, color: "text-primary" },
           { label: "Gold Inventory Value", value: goldInventory.totalValue, prefix: "₹", icon: Gem, color: "text-primary", sub: `${goldInventory.totalWeight.toFixed(1)}g gold` },
-          { label: "Low Stock", value: lowStock, icon: AlertTriangle, color: "text-amber-600" },
-          { label: "Out of Stock", value: outOfStock, icon: PackageMinus, color: "text-destructive" },
+          { label: "Made to Order", value: products.filter(p => (p as any).isAvailableForOrder !== false).length, icon: CheckCircle2, color: "text-emerald-600", sub: "Ready for order" },
+          { label: "Unavailable Products", value: products.filter(p => (p as any).isAvailableForOrder === false).length, icon: PackageMinus, color: "text-destructive", sub: "Disabled by admin" },
         ].map((s) => (
           <Card key={s.label} className="rounded-2xl">
             <CardContent className="p-6">
@@ -821,23 +785,21 @@ export default function InventoryPage() {
           </SelectContent>
         </Select>
         <Select value={stockFilter} onValueChange={setStockFilter}>
-          <SelectTrigger className="w-[160px] h-11 rounded-xl">
-            <SelectValue placeholder="Stock Status" />
+          <SelectTrigger className="w-[180px] h-11 rounded-xl">
+            <SelectValue placeholder="Availability Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Stock</SelectItem>
-            <SelectItem value="In Stock">In Stock</SelectItem>
-            <SelectItem value="Low Stock">Low Stock</SelectItem>
-            <SelectItem value="Out of Stock">Out of Stock</SelectItem>
+            <SelectItem value="all">All Availability</SelectItem>
+            <SelectItem value="Made to Order">✨ Made to Order</SelectItem>
+            <SelectItem value="Currently Unavailable">🚫 Currently Unavailable</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-4">
         {filtered.map((item) => {
-          const status = getStockStatus(item.stock);
-          const stockPct = Math.min(100, Math.round((item.stock / (item.stock + 10)) * 100));
-          const profitMargin = ((item.price - item.purchasePrice) / item.price * 100).toFixed(1);
+          const status = getStockStatus(item.stock, item);
+          const profitMargin = item.price && item.purchasePrice ? ((item.price - item.purchasePrice) / item.price * 100).toFixed(1) : "0";
           
           return (
             <Card key={item.id} className="overflow-hidden group hover:border-primary/20 transition-all duration-300">
@@ -866,20 +828,20 @@ export default function InventoryPage() {
 
                   <div className="text-center min-w-[100px]">
                     <p className="text-xs text-muted-foreground mb-1">Purchase</p>
-                    <p className="font-medium text-foreground">₹{item.purchasePrice.toLocaleString()}</p>
+                    <p className="font-medium text-foreground">₹{(item.purchasePrice || 0).toLocaleString()}</p>
                   </div>
 
                   <div className="min-w-[140px]">
-                    <p className="text-xs text-muted-foreground mb-1">Stock</p>
+                    <p className="text-xs text-muted-foreground mb-1">Availability</p>
                     <div className="flex items-center gap-2">
-                      <span className={`font-bold text-sm ${status === "Out of Stock" ? "text-destructive" : status === "Low Stock" ? "text-amber-500" : "text-emerald-600"}`}>
-                        {item.stock}
-                      </span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${statusColors[status]}`}>
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                        status === "Currently Unavailable"
+                          ? "bg-red-100 text-red-700 border border-red-200"
+                          : "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                      }`}>
                         {status}
                       </span>
                     </div>
-                    <Progress value={stockPct} className="h-1.5 mt-1" />
                   </div>
 
                   <div className="min-w-[100px] text-center">

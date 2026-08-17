@@ -64,9 +64,46 @@ export default function CategoriesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [image, setImage] = useState("");
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [parentCategory, setParentCategory] = useState<string>("none");
   const [featured, setFeatured] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    setUploadingImage(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", "review_upload");
+      formData.append("folder", "categories");
+
+      const res = await fetch("https://api.cloudinary.com/v1_1/dkawppfwu/image/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.secure_url) {
+        setImage(data.secure_url);
+        setImagePreview(data.secure_url);
+        toast({ title: "Image Uploaded ✅", description: "Category image uploaded to Cloudinary successfully!" });
+      } else {
+        throw new Error(data.error?.message || "Upload failed");
+      }
+    } catch (err: any) {
+      console.error("Cloudinary upload error:", err);
+      toast({ title: "Upload Failed ❌", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   // Delete dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -310,8 +347,12 @@ export default function CategoriesPage() {
               )}
               {!hasSubcategories && <div className="w-5" />}
 
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <FolderTree className="h-5 w-5 text-primary" />
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden border border-border/40 shrink-0">
+                {category.image ? (
+                  <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
+                ) : (
+                  <FolderTree className="h-5 w-5 text-primary" />
+                )}
               </div>
 
               <div>
@@ -383,6 +424,7 @@ export default function CategoriesPage() {
       const categoryData = {
         name: name.trim().toLowerCase(),
         description: description || undefined,
+        image: image || undefined,
         parentCategory: parentValue,
         featured: featured,
       };
@@ -409,6 +451,8 @@ export default function CategoriesPage() {
     setEditingId(category._id);
     setName(category.name);
     setDescription(category.description || "");
+    setImage(category.image || "");
+    setImagePreview(category.image || null);
     setParentCategory(category.parentCategory || "none");
     setFeatured(category.featured);
     setOpen(true);
@@ -449,6 +493,8 @@ export default function CategoriesPage() {
     setEditingId(null);
     setName("");
     setDescription("");
+    setImage("");
+    setImagePreview(null);
     setParentCategory("none");
     setFeatured(false);
   };
@@ -578,6 +624,50 @@ export default function CategoriesPage() {
                     onChange={e => setDescription(e.target.value)}
                     placeholder="Short description of the category"
                     className="rounded-xl"
+                  />
+                </div>
+
+                {/* Category Image Upload */}
+                <div className="space-y-2">
+                  <Label>Category Image</Label>
+
+                  {(imagePreview || image) && (
+                    <div className="relative w-28 h-28 rounded-xl overflow-hidden border-2 border-primary/30 group bg-gray-50 mb-2">
+                      <img src={imagePreview || image} alt="Category Preview" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImage("");
+                          setImagePreview(null);
+                        }}
+                        className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 shadow-md hover:bg-red-700 transition-colors"
+                        title="Remove Image"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageFileChange}
+                      disabled={uploadingImage}
+                      className="rounded-xl cursor-pointer text-xs"
+                    />
+                    {uploadingImage && <Loader2 className="w-5 h-5 animate-spin text-primary shrink-0" />}
+                  </div>
+
+                  <Input
+                    type="url"
+                    value={image}
+                    onChange={e => {
+                      setImage(e.target.value);
+                      setImagePreview(e.target.value);
+                    }}
+                    placeholder="Or paste Cloudinary image URL..."
+                    className="rounded-xl text-xs mt-1"
                   />
                 </div>
 

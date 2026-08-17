@@ -41,12 +41,12 @@ declare global {
   }
 }
 
-type StatusFilter = "All" | "Confirmed" | "Processing" | "Shipped" | "Out for Delivery" | "Delivered" | "Cancelled" | "Returned" | "Return Requested" | "Exchange Requested" | "Return Approved" | "Exchange Approved" | "Return Completed" | "Exchange Completed";
+type StatusFilter = "All" | "Confirmed" | "Processing" | "Shipped" | "Out for Delivery" | "Delivered" | "Cancelled" | "Returned" | "Return Requested" | "Return Under Review" | "Return Approved" | "Return Rejected" | "Return Completed" | "Exchange Requested" | "Exchange Under Review" | "Exchange Approved" | "Exchange Rejected" | "Exchange Completed" | "Cancel Rejected";
 
 const statusList = [
   "Confirmed", "Processing", "Shipped", "Out for Delivery", "Delivered",
-  "Cancelled", "Returned", "Return Requested", "Return Approved", "Return Completed",
-  "Exchange Requested", "Exchange Approved", "Exchange Completed"
+  "Cancelled", "Returned", "Return Requested", "Return Under Review", "Return Approved", "Return Rejected", "Return Completed",
+  "Exchange Requested", "Exchange Under Review", "Exchange Approved", "Exchange Rejected", "Exchange Completed"
 ];
 
 const statusConfig: Record<string, { icon: any; bg: string; text: string; border: string }> = {
@@ -58,14 +58,25 @@ const statusConfig: Record<string, { icon: any; bg: string; text: string; border
   Cancelled: { icon: XCircle, bg: "bg-red-500/10", text: "text-red-500", border: "border-red-500/30" },
   Returned: { icon: XCircle, bg: "bg-orange-500/10", text: "text-orange-500", border: "border-orange-500/30" },
   "Return Requested": { icon: RefreshCw, bg: "bg-purple-500/10", text: "text-purple-500", border: "border-purple-500/30" },
+  "Return Under Review": { icon: RefreshCw, bg: "bg-yellow-500/10", text: "text-yellow-600", border: "border-yellow-500/30" },
   "Return Approved": { icon: CheckCircle2, bg: "bg-green-500/10", text: "text-green-500", border: "border-green-500/30" },
+  "Return Rejected": { icon: XCircle, bg: "bg-red-500/10", text: "text-red-500", border: "border-red-500/30" },
   "Return Completed": { icon: CheckCircle2, bg: "bg-blue-500/10", text: "text-blue-500", border: "border-blue-500/30" },
   "Exchange Requested": { icon: RefreshCw, bg: "bg-cyan-500/10", text: "text-cyan-500", border: "border-cyan-500/30" },
+  "Exchange Under Review": { icon: RefreshCw, bg: "bg-yellow-500/10", text: "text-yellow-600", border: "border-yellow-500/30" },
   "Exchange Approved": { icon: CheckCircle2, bg: "bg-green-500/10", text: "text-green-500", border: "border-green-500/30" },
+  "Exchange Rejected": { icon: XCircle, bg: "bg-red-500/10", text: "text-red-500", border: "border-red-500/30" },
   "Exchange Completed": { icon: CheckCircle2, bg: "bg-blue-500/10", text: "text-blue-500", border: "border-blue-500/30" },
+  "Cancel Rejected": { icon: XCircle, bg: "bg-orange-500/10", text: "text-orange-500", border: "border-orange-500/30" },
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return "http://localhost:5000/api";
+  }
+  return import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+};
+const API_BASE_URL = getApiBaseUrl();
 
 
 interface ReturnRequestInfo {
@@ -482,18 +493,31 @@ export default function OrdersPage() {
         customerPhone: o.customerPhone || "",
         customerAddress: o.shippingAddress || {},
         billingAddress: o.billingAddress || o.shippingAddress || {},
-        items: o.items?.map((item: any) => ({
-          ...item,
-          skuCode: item.skuCode || item.sku || item.productSku,
-          image: item.image || item.productImage || item.imageUrl
-        })) || [],
-        subtotal: o.subtotal || 0,
-        tax: o.tax || 0,
-        gstAmount: o.gstAmount || o.tax || 0,
-        totalExclGst: o.totalExclGst || (o.subtotal ? o.subtotal - (o.tax || 0) : 0),
+        items: o.items?.map((item: any) => {
+          const gstRate = item.gstPercent ?? item.gst ?? 3;
+          const itemPrice = item.price || 0;
+          const itemQty = item.quantity || 1;
+          const itemTotal = itemPrice * itemQty;
+          const itemGst = item.gstAmount ?? Number(((itemTotal * gstRate) / 100).toFixed(2));
+          return {
+            ...item,
+            gstPercent: gstRate,
+            gstAmount: itemGst,
+            skuCode: item.skuCode || item.sku || item.productSku,
+            image: item.image || item.productImage || item.imageUrl
+          };
+        }) || [],
+        subtotal: o.items?.reduce((acc: number, i: any) => acc + ((i.price || 0) * (i.quantity || 1)), 0) || 0,
+        tax: o.items?.reduce((acc: number, i: any) => acc + (((i.price || 0) * (i.quantity || 1) * (i.gstPercent || 3)) / 100), 0) || 0,
+        gstAmount: o.items?.reduce((acc: number, i: any) => acc + (((i.price || 0) * (i.quantity || 1) * (i.gstPercent || 3)) / 100), 0) || 0,
+        totalExclGst: o.items?.reduce((acc: number, i: any) => acc + ((i.price || 0) * (i.quantity || 1)), 0) || 0,
         discount: o.discount || 0,
-        shippingCharge: o.shippingCharge || 0,
-        total: o.totalAmount || o.total || 0,
+        shippingCharge: 1200,
+        total: (() => {
+            const subtotal = o.items?.reduce((acc: number, i: any) => acc + ((i.price || 0) * (i.quantity || 1)), 0) || 0;
+            const tax = o.items?.reduce((acc: number, i: any) => acc + (((i.price || 0) * (i.quantity || 1) * (i.gstPercent || 3)) / 100), 0) || 0;
+            return subtotal + tax + 1200;
+        })(),
         status: o.orderStatus || o.status || "Confirmed",
         paymentStatus: o.paymentStatus || "SUCCESS",
         paymentMethod: o.paymentMethod || "ONLINE",
@@ -612,8 +636,7 @@ export default function OrdersPage() {
   }, [orderParam, orders]);
 
   useEffect(() => {
-    if (token && isAuthenticated && !initialFetchDone.current) {
-      initialFetchDone.current = true;
+    if (token && isAuthenticated) {
       fetchOrdersFromAPI();
     }
   }, [token, isAuthenticated]);
@@ -1334,7 +1357,7 @@ export default function OrdersPage() {
                             )}
 
                             <p className="text-sm mt-2">
-                              Qty: {item.quantity} × ₹{item.price?.toLocaleString()} = ₹{(item.price * item.quantity).toLocaleString()}
+                              Qty: {item.quantity} × ₹{item.price?.toLocaleString()} = ₹{(item.price * item.quantity).toLocaleString()} <span className="text-xs text-muted-foreground">(+ {item.gstPercent || 3}% GST extra)</span>
                             </p>
                           </div>
                         </div>
@@ -1345,25 +1368,27 @@ export default function OrdersPage() {
               </div>
 
               {/* Price Breakdown */}
-              <div className="border rounded-lg p-4">
+              <div className="border rounded-lg p-4 bg-gray-50/50">
                 <h3 className="text-lg font-semibold mb-3">Price Breakdown</h3>
-                <div className="space-y-2">
+                <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span>Product Price (Excl. GST):</span>
-                    <span>₹{(selectedOrder.totalExclGst || (selectedOrder.subtotal - (selectedOrder.tax || 0)))?.toLocaleString()}</span>
+                    <span className="text-muted-foreground">Product Subtotal (Excl. GST):</span>
+                    <span className="font-medium">₹{(selectedOrder.subtotal || selectedOrder.totalExclGst || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>GST (Tax):</span>
-                    <span>₹{selectedOrder.tax?.toLocaleString() || 0}</span>
+                    <span className="text-muted-foreground">Applicable GST (Tax):</span>
+                    <span className="font-medium text-amber-600">₹{(selectedOrder.tax || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Shipping:</span>
-                    <span>₹{selectedOrder.shippingCharge?.toLocaleString() || 0}</span>
+                    <span className="text-muted-foreground">Shipping Charge (Pan-India):</span>
+                    <span className="font-medium">₹{(selectedOrder.shippingCharge ?? 1200).toLocaleString()}</span>
                   </div>
                   <div className="border-t pt-2 mt-2">
-                    <div className="flex justify-between font-bold">
-                      <span>Grand Total:</span>
-                      <span className="text-primary">₹{selectedOrder.total?.toLocaleString()}</span>
+                    <div className="flex justify-between font-bold text-base">
+                      <span>Final Payable Amount:</span>
+                      <span className="text-primary text-lg">
+                        ₹{(selectedOrder.total || (selectedOrder.subtotal + selectedOrder.tax + (selectedOrder.shippingCharge ?? 1200))).toLocaleString()}
+                      </span>
                     </div>
                   </div>
                 </div>

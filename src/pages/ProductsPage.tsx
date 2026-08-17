@@ -94,6 +94,7 @@ interface Product {
   categoryName?: string;
   brand?: string;
   stock: number;
+  isAvailableForOrder?: boolean;
   description: string;
   images: string[];
   mainImage?: CloudinaryImage;
@@ -277,6 +278,7 @@ const ProductForm = ({
     category: getCategoryName(product?.category),
     brand: "JewelsKart Original",
     stock: product?.stock?.toString() || "",
+    isAvailableForOrder: product?.isAvailableForOrder !== undefined ? product.isAvailableForOrder : true,
     description: product?.description || "",
     images: [] as string[],
     weight: product?.goldDetails?.weight?.toString() || "",
@@ -436,12 +438,41 @@ const ProductForm = ({
     }
   };
 
+  const [customSizeInput, setCustomSizeInput] = useState("");
+
+  const isRingCategory = (cat?: string) => {
+    if (!cat) return false;
+    const lower = cat.trim().toLowerCase();
+    if (lower.includes('earring')) return false;
+    return lower === 'rings' || lower === 'ring' || lower.includes('ring');
+  };
+
   const handleRingSizeToggle = (size: string) => {
     setForm(prev => ({
       ...prev,
       ringSizes: prev.ringSizes.includes(size)
         ? prev.ringSizes.filter(s => s !== size)
         : [...prev.ringSizes, size]
+    }));
+  };
+
+  const handleAddCustomRingSize = () => {
+    const trimmed = customSizeInput.trim();
+    if (!trimmed) return;
+    if (!form.ringSizes.includes(trimmed)) {
+      setForm(prev => ({
+        ...prev,
+        ringSizes: [...prev.ringSizes, trimmed]
+      }));
+      toast({ title: "Size Added", description: `Added ring size ${trimmed}` });
+    }
+    setCustomSizeInput("");
+  };
+
+  const handleRemoveRingSize = (size: string) => {
+    setForm(prev => ({
+      ...prev,
+      ringSizes: prev.ringSizes.filter(s => s !== size)
     }));
   };
 
@@ -501,6 +532,7 @@ const ProductForm = ({
       purchasePrice: parseFloat(form.purchasePrice) || 0,
       gst: form.gst,
       stock: parseInt(form.stock) || 0,
+      isAvailableForOrder: form.isAvailableForOrder,
       weight: parseFloat(form.weight) || 0,
       brand: "JewelsKart Original",
       imageFile: imageFile,
@@ -621,18 +653,36 @@ const ProductForm = ({
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label>Status</Label>
-          <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
-            <SelectTrigger className="h-11 rounded-xl w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Draft">📝 Draft</SelectItem>
-              <SelectItem value="Published">✅ Published</SelectItem>
-              <SelectItem value="Archived">📦 Archived</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="font-medium text-foreground">Status</Label>
+            <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
+              <SelectTrigger className="h-11 rounded-xl w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Draft">📝 Draft</SelectItem>
+                <SelectItem value="Published">✅ Published</SelectItem>
+                <SelectItem value="Archived">📦 Archived</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="font-medium text-foreground">Available for Order</Label>
+            <Select
+              value={form.isAvailableForOrder ? "yes" : "no"}
+              onValueChange={v => setForm({ ...form, isAvailableForOrder: v === "yes" })}
+            >
+              <SelectTrigger className="h-11 rounded-xl w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="yes">✨ Yes (Made to Order)</SelectItem>
+                <SelectItem value="no">🚫 No (Currently Unavailable)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -711,7 +761,7 @@ const ProductForm = ({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Selling Price (₹) * <span className="text-xs text-muted-foreground">(GST Inclusive)</span></Label>
+            <Label>Selling Price (₹) * <span className="text-xs text-muted-foreground">(GST Exclusive — GST added on top)</span></Label>
             <Input
               type="number"
               className="h-11 rounded-xl w-full"
@@ -755,42 +805,103 @@ const ProductForm = ({
             <div className="space-y-2">
               <Label className="text-muted-foreground">GST Breakdown (Preview)</Label>
               <div className="h-11 rounded-xl border bg-muted/30 px-3 flex flex-col justify-center text-sm">
-                <span className="text-muted-foreground">Excl. GST: ₹{(parseFloat(form.price || "0") / (1 + form.gst / 100)).toFixed(2)}</span>
-                <span className="text-primary font-medium">GST ({form.gst}%): ₹{(parseFloat(form.price || "0") - parseFloat(form.price || "0") / (1 + form.gst / 100)).toFixed(2)}</span>
+                <span className="text-muted-foreground">Base Price: ₹{parseFloat(form.price || "0").toFixed(2)}</span>
+                <span className="text-primary font-medium">GST ({form.gst}%): ₹{(parseFloat(form.price || "0") * form.gst / 100).toFixed(2)}</span>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Ring Size Section */}
-      {(form.category === "Rings" || form.category?.toLowerCase().includes("ring")) && (
+      {/* Ring Size Section (Only visible for Ring products) */}
+      {isRingCategory(form.category) && (
         <div className="space-y-4 border-t pt-4">
-          <h3 className="font-semibold text-lg flex items-center gap-2">
-            <Layers className="h-5 w-5 text-primary" />
-            Ring Size
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <Layers className="h-5 w-5 text-primary" />
+              Ring Sizes (Multiple Selection)
+            </h3>
+            <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">
+              Category: Ring Product
+            </span>
+          </div>
 
-          <div className="space-y-3">
-            <Label>Available Ring Sizes</Label>
+          {/* Currently Selected Ring Sizes with Remove (X) option */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Currently Added Sizes</Label>
+            {form.ringSizes.length > 0 ? (
+              <div className="flex flex-wrap gap-2 p-3 bg-muted/20 rounded-xl border border-border/50">
+                {form.ringSizes.map(size => (
+                  <span
+                    key={size}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-sm font-medium shadow-sm"
+                  >
+                    Size {size}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveRingSize(size)}
+                      className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                      title={`Remove size ${size}`}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                ⚠️ No ring sizes added yet. Please select or add ring sizes below so customers can choose on the website.
+              </div>
+            )}
+          </div>
+
+          {/* Preset Quick Select Sizes */}
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground font-medium">Quick Select Preset Sizes</Label>
             <div className="flex flex-wrap gap-2">
-              {ringSizes.map(size => (
+              {["5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18"].map(size => (
                 <button
                   key={size}
                   type="button"
                   onClick={() => handleRingSizeToggle(size)}
-                  className={`w-12 h-12 rounded-full font-medium transition-all ${form.ringSizes.includes(size)
-                    ? "bg-primary text-white shadow-md scale-105"
-                    : "bg-secondary hover:bg-secondary/80 text-foreground"
-                    }`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    form.ringSizes.includes(size)
+                      ? "bg-primary text-white shadow-md scale-105"
+                      : "bg-muted hover:bg-muted/80 text-foreground border"
+                  }`}
                 >
                   {size}
                 </button>
               ))}
             </div>
-            {form.ringSizes.length === 0 && (
-              <p className="text-xs text-muted-foreground">No sizes selected yet. Click on sizes above to add them.</p>
-            )}
+          </div>
+
+          {/* Custom Size Adder */}
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground font-medium">Add Custom Ring Size</Label>
+            <div className="flex gap-2 max-w-sm">
+              <Input
+                type="text"
+                placeholder="e.g. 6.5, 12, S"
+                value={customSizeInput}
+                onChange={e => setCustomSizeInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddCustomRingSize();
+                  }
+                }}
+                className="h-10 text-sm rounded-lg"
+              />
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleAddCustomRingSize}
+                className="h-10 px-4 bg-primary hover:bg-primary/90 text-white rounded-lg flex items-center gap-1 shrink-0"
+              >
+                <Plus className="w-4 h-4" /> Add Size
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -1427,10 +1538,10 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Package className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Stock:</span>
+                  <span className="text-sm text-muted-foreground">Availability:</span>
                 </div>
-                <span className={`font-semibold text-sm ${(product.stock || 0) === 0 ? "text-red-500" : (product.stock || 0) <= 3 ? "text-amber-500" : "text-foreground"}`}>
-                  {(product.stock || 0) === 0 ? "Out of Stock" : `${product.stock} units`}
+                <span className={`font-semibold text-sm ${product.isAvailableForOrder === false ? "text-red-500" : "text-emerald-600"}`}>
+                  {product.isAvailableForOrder === false ? "Currently Unavailable" : "Made to Order"}
                 </span>
               </div>
 
@@ -1643,7 +1754,7 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center p-3 bg-primary/5 rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-1">Selling Price (Incl. GST)</p>
+                    <p className="text-xs text-muted-foreground mb-1">Selling Price (Excl. GST)</p>
                     <p className="text-xl font-bold text-primary">₹{(product.price || 0).toLocaleString()}</p>
                   </div>
                   <div className="text-center p-3 bg-secondary/30 rounded-lg">
@@ -1657,7 +1768,7 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
                   <div className="text-center p-3 bg-orange-500/10 rounded-lg">
                     <p className="text-xs text-muted-foreground mb-1">GST Amount</p>
                     <p className="text-lg font-semibold text-orange-600">
-                      ₹{((product.price || 0) - (product.price || 0) / (1 + (product.gst ?? 3) / 100)).toFixed(2)}
+                      ₹{((product.price || 0) * (product.gst ?? 3) / 100).toFixed(2)}
                     </p>
                   </div>
                   <div className="text-center p-3 bg-emerald-500/10 rounded-lg">
@@ -2109,8 +2220,8 @@ export default function ProductsPage() {
           if (token) {
             await notificationApi.sendNotification({
               type: 'out_of_stock',
-              title: '🚫 Product Out of Stock',
-              message: `${productName} is now out of stock. Please restock soon.`,
+              title: '🚫 Product Marked Unavailable',
+              message: `${productName} is currently marked unavailable for order.`,
               priority: 'urgent',
               actionLink: `/products/${id}`
             });
@@ -2118,7 +2229,7 @@ export default function ProductsPage() {
         } catch (notifError) {
           console.log('Notification skipped');
         }
-        toast({ title: "Stock Updated", description: `${productName} is now OUT OF STOCK!`, variant: "destructive" });
+        toast({ title: "Product Updated", description: `${productName} is now marked unavailable.`, variant: "destructive" });
       }
       else if (newStock < 10 && newStock > 0 && oldStock >= 10) {
         try {
@@ -2126,8 +2237,8 @@ export default function ProductsPage() {
           if (token) {
             await notificationApi.sendNotification({
               type: 'low_stock',
-              title: '⚠️ Low Stock Alert',
-              message: `${productName} is running low. Only ${newStock} units left.`,
+              title: '✨ Product Capacity Updated',
+              message: `${productName} batch capacity updated to ${newStock} units.`,
               priority: 'high',
               actionLink: `/products/${id}`
             });
@@ -2135,7 +2246,7 @@ export default function ProductsPage() {
         } catch (notifError) {
           console.log('Notification skipped');
         }
-        toast({ title: "Low Stock Alert", description: `${productName} has only ${newStock} units left!`, variant: "default" });
+        toast({ title: "Product Updated", description: `${productName} batch capacity updated.`, variant: "default" });
       }
       else if (oldStock === 0 && newStock > 0) {
         try {
@@ -2442,8 +2553,8 @@ export default function ProductsPage() {
   // Use DB count if available (true total), otherwise fall back to fetched array length
   const totalProducts = dbTotalCount !== null ? dbTotalCount : products.length;
   const totalValue = products.reduce((sum, p) => sum + (p.price || 0), 0);
-  const lowStockCount = products.filter(p => (p.stock || 0) > 0 && (p.stock || 0) <= 5).length;
-  const outOfStockCount = products.filter(p => (p.stock || 0) === 0).length;
+  const madeToOrderCount = products.filter(p => (p as any).isAvailableForOrder !== false).length;
+  const unavailableCount = products.filter(p => (p as any).isAvailableForOrder === false).length;
 
   const handleAddProduct = async (formData: any) => {
     try {
@@ -2696,19 +2807,19 @@ export default function ProductsPage() {
         <Card className="rounded-2xl">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-muted-foreground font-medium">Low Stock</span>
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              <span className="text-sm text-muted-foreground font-medium">Made to Order</span>
+              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
             </div>
-            <p className="text-3xl font-bold">{lowStockCount}</p>
+            <p className="text-3xl font-bold">{madeToOrderCount}</p>
           </CardContent>
         </Card>
         <Card className="rounded-2xl">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-muted-foreground font-medium">Out of Stock</span>
+              <span className="text-sm text-muted-foreground font-medium">Unavailable</span>
               <XCircle className="h-5 w-5 text-destructive" />
             </div>
-            <p className="text-3xl font-bold">{outOfStockCount}</p>
+            <p className="text-3xl font-bold">{unavailableCount}</p>
           </CardContent>
         </Card>
       </div>

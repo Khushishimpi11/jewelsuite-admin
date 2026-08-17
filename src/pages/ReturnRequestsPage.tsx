@@ -21,7 +21,13 @@ declare global {
   }
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return "http://localhost:5000/api";
+  }
+  return import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+};
+const API_BASE_URL = getApiBaseUrl();
 
 interface ReturnRequest {
   _id: string;
@@ -352,15 +358,18 @@ const ReturnRequestsPage = () => {
   };
 
   const fetchRequests = async () => {
-    if (!token) return;
-    
+    const authToken = token || localStorage.getItem("admin_token") || localStorage.getItem("token");
     setLoading(true);
     try {
+      if (!authToken) {
+        setLoading(false);
+        return;
+      }
       const response = await fetch(`${API_BASE_URL}/returns/admin/all`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${authToken}` }
       });
       const data = await response.json();
-      if (data.success) {
+      if (data.success && Array.isArray(data.requests)) {
         setRequests(data.requests);
       }
     } catch (error) {
@@ -370,10 +379,27 @@ const ReturnRequestsPage = () => {
       setLoading(false);
     }
   };
+
+  const handleViewDetail = async (req: ReturnRequest) => {
+    setSelectedRequest(req);
+    // If it's pending, mark it as under review automatically when viewed
+    if (req.status === 'pending') {
+      try {
+        await fetch(`${API_BASE_URL}/returns/admin/${req._id}/under-review`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        // We can fetch requests in the background to update the list, but no need to wait
+        fetchRequests();
+      } catch (error) {
+        console.error('Error updating status to under review:', error);
+      }
+    }
+  };
   
   useEffect(() => {
     fetchRequests();
-  }, [token]);
+  }, []);
   
   const handleApprove = async (id: string) => {
     setProcessing(true);
@@ -388,15 +414,21 @@ const ReturnRequestsPage = () => {
       });
       const data = await response.json();
       if (data.success) {
-        toast({ title: "Success", description: "Request approved successfully" });
-        fetchRequests();
-        setSelectedRequest(null);
+        toast({ title: "Approved ✅", description: "Request approved & Order status updated in database" });
+        await fetchRequests();
+        if (selectedRequest && selectedRequest._id === id) {
+          setSelectedRequest({
+            ...selectedRequest,
+            status: 'approved',
+            adminNote: adminNote || selectedRequest.adminNote || 'Request approved'
+          });
+        }
         setAdminNote('');
       } else {
         toast({ title: "Error", description: data.message, variant: "destructive" });
       }
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to approve", variant: "destructive" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to approve", variant: "destructive" });
     } finally {
       setProcessing(false);
     }
@@ -415,15 +447,21 @@ const ReturnRequestsPage = () => {
       });
       const data = await response.json();
       if (data.success) {
-        toast({ title: "Success", description: "Request rejected" });
-        fetchRequests();
-        setSelectedRequest(null);
+        toast({ title: "Rejected ❌", description: "Request rejected & Order status updated in database" });
+        await fetchRequests();
+        if (selectedRequest && selectedRequest._id === id) {
+          setSelectedRequest({
+            ...selectedRequest,
+            status: 'rejected',
+            adminNote: adminNote || selectedRequest.adminNote || 'Request rejected'
+          });
+        }
         setAdminNote('');
       } else {
         toast({ title: "Error", description: data.message, variant: "destructive" });
       }
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to reject", variant: "destructive" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to reject", variant: "destructive" });
     } finally {
       setProcessing(false);
     }
@@ -725,12 +763,19 @@ const ReturnRequestsPage = () => {
                         
                         <div className="text-right">
                           <p className="text-xs text-muted-foreground">{formatDate(req.createdAt)}</p>
-                          <Button variant="outline" size="sm" onClick={() => setSelectedRequest(req)} className="mt-3">
+                          <Button variant="outline" size="sm" onClick={() => handleViewDetail(req)} className="mt-3">
                             <Eye className="w-4 h-4 mr-1" />
                             View Details
                           </Button>
                         </div>
                       </div>
+                      {/* Admin note for rejected/approved requests */}
+                      {req.adminNote && req.status !== 'pending' && (
+                        <div className={`mt-3 pt-3 border-t text-xs flex items-start gap-2 ${req.status === 'rejected' ? 'text-red-600' : 'text-green-700'}`}>
+                          <span className="font-semibold shrink-0">Admin Note:</span>
+                          <span>{req.adminNote}</span>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 );
@@ -1029,20 +1074,49 @@ const ReturnRequestsPage = () => {
                 </div>
               </div>
               
-              {/* Customer Uploaded Images */}
-              {selectedRequest.images && selectedRequest.images.length > 0 && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm font-semibold mb-3 flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Customer Uploaded Proof ({selectedRequest.images.length} images)</p>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                    {selectedRequest.images.map((img: string, idx: number) => (
-                      <div key={idx} className="relative group cursor-pointer aspect-square" onClick={() => setSelectedImage(img)}>
-                        <img src={img} alt={`Proof ${idx + 1}`} className="w-full h-full object-cover rounded-lg border hover:opacity-80 transition-opacity" />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center"><ZoomIn className="w-5 h-5 text-white" /></div>
+              {/* Customer Uploaded Unboxing Video & Proof Images */}
+              <div className="space-y-3">
+                <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
+                  <p className="text-sm font-semibold mb-2 flex items-center gap-2 text-amber-900">
+                    🎥 Mandatory Unboxing Video Verification
+                  </p>
+                  {(selectedRequest.video || (selectedRequest as any).unboxingVideoName) ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-2.5 bg-white border border-amber-300 rounded-md text-xs">
+                        <span className="font-medium text-amber-900 truncate">
+                          📹 {(selectedRequest as any).unboxingVideoName || 'Unboxing_Video.mp4'}
+                        </span>
+                        <Badge className="bg-green-100 text-green-700 ml-2 flex-shrink-0">VIDEO ATTACHED</Badge>
                       </div>
-                    ))}
-                  </div>
+                      {selectedRequest.video && (
+                        <div className="mt-2 rounded-lg overflow-hidden border border-amber-300 bg-black">
+                          <video 
+                            src={selectedRequest.video} 
+                            controls 
+                            className="w-full max-h-72 object-contain" 
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-amber-800 italic">No unboxing video recorded in system metadata</p>
+                  )}
                 </div>
-              )}
+
+                {selectedRequest.images && selectedRequest.images.length > 0 && (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm font-semibold mb-3 flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Customer Uploaded Proof ({selectedRequest.images.length} images)</p>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                      {selectedRequest.images.map((img: string, idx: number) => (
+                        <div key={idx} className="relative group cursor-pointer aspect-square" onClick={() => setSelectedImage(img)}>
+                          <img src={img} alt={`Proof ${idx + 1}`} className="w-full h-full object-cover rounded-lg border hover:opacity-80 transition-opacity" />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center"><ZoomIn className="w-5 h-5 text-white" /></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
               
               {/* Customer Details */}
               <div className="grid md:grid-cols-2 gap-4">
@@ -1070,11 +1144,12 @@ const ReturnRequestsPage = () => {
               
               {/* ========== ACTION BUTTONS ========== */}
               
-              {/* Approve/Reject Buttons (for pending requests) */}
-              {selectedRequest.requestType !== 'cancel' && selectedRequest.status === 'pending' && (
-                <div className="space-y-3">
+              {/* Approve/Reject Buttons (for pending or under review requests) */}
+              {(selectedRequest.status === 'pending' || selectedRequest.status === 'under_review') && (
+                <div className="space-y-3 bg-white p-4 rounded-lg border border-primary/20 shadow-sm">
+                  <p className="text-sm font-semibold text-gray-800">Admin Decision</p>
                   <Textarea 
-                    placeholder="Add admin note (optional)..." 
+                    placeholder="Add admin note or rejection reason (optional)..." 
                     value={adminNote} 
                     onChange={(e) => setAdminNote(e.target.value)} 
                     rows={2} 

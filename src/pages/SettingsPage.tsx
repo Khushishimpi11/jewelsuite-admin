@@ -323,8 +323,8 @@ export default function SettingsPage() {
 
                 <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/20 transition-colors">
                   <div className="space-y-0.5">
-                    <Label className="font-semibold text-sm">Low Stock Alerts</Label>
-                    <p className="text-xs text-muted-foreground">Alert when any product stock goes below 5 units</p>
+                    <Label className="font-semibold text-sm">Product Availability Alerts</Label>
+                    <p className="text-xs text-muted-foreground">Alert when a product is marked unavailable by admin</p>
                   </div>
                   <Switch checked={lowStockAlerts} onCheckedChange={setLowStockAlerts} />
                 </div>
@@ -333,8 +333,8 @@ export default function SettingsPage() {
 
                 <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/20 transition-colors">
                   <div className="space-y-0.5">
-                    <Label className="font-semibold text-sm">Out of Stock Alerts</Label>
-                    <p className="text-xs text-muted-foreground">Alert immediately when product stock reaches zero</p>
+                    <Label className="font-semibold text-sm">New Order Notifications</Label>
+                    <p className="text-xs text-muted-foreground">Alert immediately when a new customer order is placed</p>
                   </div>
                   <Switch checked={outOfStockAlerts} onCheckedChange={setOutOfStockAlerts} />
                 </div>

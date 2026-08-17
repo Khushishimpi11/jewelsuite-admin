@@ -4,7 +4,7 @@ import { AnimatedCounter } from "@/components/AnimatedCounter";
 import {
   IndianRupee, ShoppingCart, Users, TrendingUp, Package,
   ArrowUpRight, Clock, AlertTriangle, Gem, BarChart3,
-  PackageMinus, FolderTree, Receipt, Tag,
+  PackageMinus, FolderTree, Receipt, Tag, CheckCircle2,
   Activity,
 } from "lucide-react";
 import {
@@ -54,8 +54,6 @@ export default function DashboardPage() {
     orders,
     customers,
     getTotalRevenue,
-    getLowStockProducts,
-    getOutOfStockCount,
     getProductCount,
     getTotalOrders,
     getTotalCustomers,
@@ -77,8 +75,7 @@ export default function DashboardPage() {
   const totalRevenue = getTotalRevenue();
   const totalCustomers = getTotalCustomers();
   const totalCategories = getCategoryCount();
-  const outOfStockCount = getOutOfStockCount();
-  const lowStockCount = getLowStockProducts().length;
+  const unavailableCount = products.filter(p => (p as any).isAvailableForOrder === false).length;
   const pendingOrders = orders.filter(o => o.status === "Pending" || o.status === "pending").length;
 
   // Generate sales data from real orders
@@ -180,10 +177,10 @@ export default function DashboardPage() {
   useEffect(() => {
     const newInsights = [];
     
-    if (lowStockCount > 0) {
+    if (unavailableCount > 0) {
       newInsights.push({
         icon: AlertTriangle,
-        text: `${lowStockCount} products are low on stock — restock soon`,
+        text: `${unavailableCount} products marked as Currently Unavailable`,
         type: "warning"
       });
     }
@@ -214,7 +211,7 @@ export default function DashboardPage() {
     }
     
     setInsights(newInsights);
-  }, [lowStockCount, categoryData, pendingOrders]);
+  }, [unavailableCount, categoryData, pendingOrders]);
 
   // Generate recent activity from real data
   useEffect(() => {
@@ -232,25 +229,15 @@ export default function DashboardPage() {
       }
     }
     
-    const lowStockProducts = getLowStockProducts();
-    if (lowStockProducts.length > 0) {
-      activity.push({
-        icon: AlertTriangle,
-        text: `Low stock alert: ${lowStockProducts[0]?.name} (${lowStockProducts[0]?.stock} left)`,
-        date: "Now",
-        color: "text-amber-600"
-      });
-    }
-    
     setRecentActivity(activity.slice(0, 5));
-  }, [orders, getLowStockProducts]);
+  }, [orders]);
 
   // Quick stats with navigation
   const quickStats = [
     { label: "PRODUCTS", value: totalProducts, sub: `${totalProducts} items`, icon: Package, to: "/products", color: "text-primary" },
     { label: "ORDERS", value: totalOrders, sub: `${pendingOrders} pending`, icon: ShoppingCart, to: "/orders", color: "text-primary" },
-    { label: "OUT OF STOCK", value: outOfStockCount, sub: outOfStockCount === 0 ? "All stocked" : `${outOfStockCount} items`, icon: PackageMinus, to: "/inventory?filter=out", color: outOfStockCount === 0 ? "text-emerald-600" : "text-red-500" },
-    { label: "LOW STOCK", value: lowStockCount, sub: lowStockCount === 0 ? "Healthy" : `${lowStockCount} items`, icon: AlertTriangle, to: "/inventory?filter=low", color: lowStockCount === 0 ? "text-emerald-600" : "text-amber-600" },
+    { label: "UNAVAILABLE", value: products.filter(p => (p as any).isAvailableForOrder === false).length, sub: products.filter(p => (p as any).isAvailableForOrder === false).length === 0 ? "All Available" : `${products.filter(p => (p as any).isAvailableForOrder === false).length} disabled`, icon: PackageMinus, to: "/inventory?filter=out", color: products.filter(p => (p as any).isAvailableForOrder === false).length === 0 ? "text-emerald-600" : "text-red-500" },
+    { label: "MADE TO ORDER", value: products.filter(p => (p as any).isAvailableForOrder !== false).length, sub: "Ready for order", icon: CheckCircle2, to: "/inventory", color: "text-emerald-600" },
     { label: "CUSTOMERS", value: totalCustomers, sub: "Active users", icon: Users, to: "/customers", color: "text-primary" },
     { label: "CATEGORIES", value: totalCategories, sub: "Active", icon: FolderTree, to: "/categories", color: "text-primary" },
   ];

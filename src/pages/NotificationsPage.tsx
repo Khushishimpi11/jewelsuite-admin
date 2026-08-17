@@ -212,7 +212,7 @@ export default function NotificationsPage() {
         return ['new_order', 'order_cancelled', 'order_shipped', 'order_delivered', 'return_request', 'exchange_request', 'refund_completed'].includes(notif.type);
       }
       if (activeTab === 'inventory') {
-        return ['low_stock', 'out_of_stock', 'back_in_stock'].includes(notif.type);
+        return ['product_unavailable', 'product_available', 'low_stock', 'out_of_stock', 'back_in_stock'].includes(notif.type);
       }
       if (activeTab === 'payments') {
         return ['payment_received', 'payment_failed', 'refund_processed'].includes(notif.type);
