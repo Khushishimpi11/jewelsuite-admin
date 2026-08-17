@@ -89,7 +89,7 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [activeTab, setActiveTab] = useState<'all' | 'orders' | 'inventory' | 'payments' | 'customers' | 'system'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'orders' | 'availability' | 'payments' | 'customers' | 'system'>('all');
 
   const fetchNotifications = async () => {
     setLoading(true);
@@ -184,11 +184,9 @@ export default function NotificationsPage() {
         return <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500"><Coins className="h-5 w-5" /></div>;
       case 'payment_failed':
         return <div className="h-10 w-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500"><AlertOctagon className="h-5 w-5" /></div>;
-      case 'low_stock':
-        return <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600"><AlertTriangle className="h-5 w-5" /></div>;
-      case 'out_of_stock':
+      case 'product_unavailable':
         return <div className="h-10 w-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500"><AlertTriangle className="h-5 w-5" /></div>;
-      case 'back_in_stock':
+      case 'product_available':
         return <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500"><Layers className="h-5 w-5" /></div>;
       case 'new_customer':
         return <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500"><UserPlus className="h-5 w-5" /></div>;
@@ -211,8 +209,8 @@ export default function NotificationsPage() {
       if (activeTab === 'orders') {
         return ['new_order', 'order_cancelled', 'order_shipped', 'order_delivered', 'return_request', 'exchange_request', 'refund_completed'].includes(notif.type);
       }
-      if (activeTab === 'inventory') {
-        return ['product_unavailable', 'product_available', 'low_stock', 'out_of_stock', 'back_in_stock'].includes(notif.type);
+      if (activeTab === 'availability') {
+        return ['product_unavailable', 'product_available'].includes(notif.type);
       }
       if (activeTab === 'payments') {
         return ['payment_received', 'payment_failed', 'refund_processed'].includes(notif.type);
@@ -271,10 +269,10 @@ export default function NotificationsPage() {
           Orders
         </button>
         <button 
-          onClick={() => setActiveTab('inventory')} 
-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all shrink-0 ${activeTab === 'inventory' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          onClick={() => setActiveTab('availability')} 
+          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all shrink-0 ${activeTab === 'availability' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
         >
-          Inventory
+          Availability
         </button>
         <button 
           onClick={() => setActiveTab('payments')} 

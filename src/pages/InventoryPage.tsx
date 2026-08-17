@@ -40,6 +40,14 @@ const getStockStatus = (stock: number, item?: any): "Made to Order" | "Currently
   return "Made to Order";
 };
 
+// Helper function to safely resolve product image
+const getProductImage = (product: any): string => {
+  if (product?.mainImage?.url) return product.mainImage.url;
+  if (product?.images && product.images.length > 0 && typeof product.images[0] === 'string') return product.images[0];
+  if (product?.icon && typeof product.icon === 'string') return product.icon;
+  return "";
+};
+
 // ==================== INVENTORY VIEW DIALOG WITH FULL DETAILS ====================
 
 const InventoryViewDialog = ({ 
@@ -800,14 +808,32 @@ export default function InventoryPage() {
         {filtered.map((item) => {
           const status = getStockStatus(item.stock, item);
           const profitMargin = item.price && item.purchasePrice ? ((item.price - item.purchasePrice) / item.price * 100).toFixed(1) : "0";
+          const imageUrl = getProductImage(item);
+          const hasValidImage = imageUrl && !imageUrl.includes('data:image/svg+xml');
           
           return (
             <Card key={item.id} className="overflow-hidden group hover:border-primary/20 transition-all duration-300">
               <CardContent className="p-0">
                 <div className="flex flex-wrap items-center justify-between p-5 gap-4">
-                  <div className="min-w-[200px]">
-                    <p className="font-bold text-foreground text-lg">{item.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">SKU: {item.sku}</p>
+                  <div className="flex items-center gap-4 min-w-[220px]">
+                    <div className="h-14 w-14 rounded-xl bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0 border border-border/40">
+                      {hasValidImage ? (
+                        <img
+                          src={imageUrl}
+                          alt={item.name}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="1"%3E%3Crect x="3" y="3" width="18" height="18" rx="2"%3E%3C/rect%3E%3Ccircle cx="8.5" cy="8.5" r="1.5"%3E%3C/circle%3E%3Cpolyline points="21 15 16 10 5 21"%3E%3C/polyline%3E%3C/svg%3E';
+                          }}
+                        />
+                      ) : (
+                        <Gem className="h-6 w-6 text-primary" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-bold text-foreground text-lg">{item.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 font-mono">SKU: {item.sku}</p>
+                    </div>
                   </div>
 
                   <div className="min-w-[120px]">

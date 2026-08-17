@@ -21,23 +21,37 @@ export default function SettingsPage() {
     loading
   } = useJewelleryCMS();
 
+  // Real JewelsKart default values
+  const DEFAULT_STORE_NAME = "JewelsKart";
+  const DEFAULT_STORE_LOGO = "https://res.cloudinary.com/dkawppfwu/image/upload/v1777292088/logo_1777288427544_z5hkug.png";
+  const DEFAULT_FAVICON = "https://res.cloudinary.com/dkawppfwu/image/upload/v1777292088/logo_1777288427544_z5hkug.png";
+  const DEFAULT_BUSINESS_EMAIL = "info@jewelskartindia.com";
+  const DEFAULT_CONTACT_NUMBER = "+91 75585 72001";
+  const DEFAULT_WHATSAPP_NUMBER = "+91 75585 72001";
+  const DEFAULT_STORE_ADDRESS = "Boulevard Towers - JEWELSKART, A-1008, 10th Floor, Near Sadhu Vaswani Chowk, Opp Vijay Sales, Camp, Pune - 411001";
+  const DEFAULT_ZOHO_ACCOUNT_ID = "60080771057";
+  const DEFAULT_ZOHO_API_KEY = "1003.6314fc4a7d42b81ac85f1ca3dbc545eb.7a647ed7a4a681800edd6c0e26878bbd";
+  const DEFAULT_GST_NUMBER = "27AABCU9603R1ZM";
+  const DEFAULT_PAN_NUMBER = "AABCU9603R";
+  const DEFAULT_INVOICE_FOOTER = "Thank you for shopping with JewelsKart! All items are BIS hallmarked & 100% certified.";
+
   // Local state for all fields
-  const [storeName, setStoreName] = useState("");
-  const [storeLogo, setStoreLogo] = useState("");
-  const [favicon, setFavicon] = useState("");
-  const [businessEmail, setBusinessEmail] = useState("");
-  const [contactNumber, setContactNumber] = useState("");
-  const [whatsAppNumber, setWhatsAppNumber] = useState("");
-  const [storeAddress, setStoreAddress] = useState("");
+  const [storeName, setStoreName] = useState(DEFAULT_STORE_NAME);
+  const [storeLogo, setStoreLogo] = useState(DEFAULT_STORE_LOGO);
+  const [favicon, setFavicon] = useState(DEFAULT_FAVICON);
+  const [businessEmail, setBusinessEmail] = useState(DEFAULT_BUSINESS_EMAIL);
+  const [contactNumber, setContactNumber] = useState(DEFAULT_CONTACT_NUMBER);
+  const [whatsAppNumber, setWhatsAppNumber] = useState(DEFAULT_WHATSAPP_NUMBER);
+  const [storeAddress, setStoreAddress] = useState(DEFAULT_STORE_ADDRESS);
 
   const [zohoPaymentsEnabled, setZohoPaymentsEnabled] = useState(true);
-  const [zohoAccountId, setZohoAccountId] = useState("23137556");
-  const [zohoApiKey, setZohoApiKey] = useState("");
+  const [zohoAccountId, setZohoAccountId] = useState(DEFAULT_ZOHO_ACCOUNT_ID);
+  const [zohoApiKey, setZohoApiKey] = useState(DEFAULT_ZOHO_API_KEY);
   const [codEnabled, setCodEnabled] = useState(true);
 
-  const [gstNumber, setGstNumber] = useState("");
-  const [panNumber, setPanNumber] = useState("");
-  const [invoiceFooterText, setInvoiceFooterText] = useState("");
+  const [gstNumber, setGstNumber] = useState(DEFAULT_GST_NUMBER);
+  const [panNumber, setPanNumber] = useState(DEFAULT_PAN_NUMBER);
+  const [invoiceFooterText, setInvoiceFooterText] = useState(DEFAULT_INVOICE_FOOTER);
 
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [newOrderAlerts, setNewOrderAlerts] = useState(true);
@@ -56,22 +70,22 @@ export default function SettingsPage() {
   // Load settings when loaded
   useEffect(() => {
     if (settings) {
-      setStoreName(settings.storeName || "");
-      setStoreLogo(settings.storeLogo || "");
-      setFavicon(settings.favicon || "");
-      setBusinessEmail(settings.businessEmail || "");
-      setContactNumber(settings.contactNumber || "");
-      setWhatsAppNumber(settings.whatsAppNumber || "");
-      setStoreAddress(settings.storeAddress || "");
+      setStoreName(settings.storeName || DEFAULT_STORE_NAME);
+      setStoreLogo(settings.storeLogo || DEFAULT_STORE_LOGO);
+      setFavicon(settings.favicon || DEFAULT_FAVICON);
+      setBusinessEmail(settings.businessEmail || DEFAULT_BUSINESS_EMAIL);
+      setContactNumber(settings.contactNumber || DEFAULT_CONTACT_NUMBER);
+      setWhatsAppNumber(settings.whatsAppNumber || DEFAULT_WHATSAPP_NUMBER);
+      setStoreAddress(settings.storeAddress || DEFAULT_STORE_ADDRESS);
 
       setZohoPaymentsEnabled(settings.zohoPaymentsEnabled !== false);
-      setZohoAccountId(settings.zohoAccountId || "23137556");
-      setZohoApiKey(settings.zohoApiKey || "");
+      setZohoAccountId(settings.zohoAccountId || DEFAULT_ZOHO_ACCOUNT_ID);
+      setZohoApiKey(settings.zohoApiKey || DEFAULT_ZOHO_API_KEY);
       setCodEnabled(settings.codEnabled !== false);
 
-      setGstNumber(settings.gstNumber || "");
-      setPanNumber(settings.panNumber || "");
-      setInvoiceFooterText(settings.invoiceFooterText || "");
+      setGstNumber(settings.gstNumber || DEFAULT_GST_NUMBER);
+      setPanNumber(settings.panNumber || DEFAULT_PAN_NUMBER);
+      setInvoiceFooterText(settings.invoiceFooterText || DEFAULT_INVOICE_FOOTER);
 
       setEmailNotifications(settings.emailNotifications !== false);
       setNewOrderAlerts(settings.newOrderAlerts !== false);
@@ -186,36 +200,36 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Store Name</Label>
-                  <Input value={storeName} onChange={(e) => setStoreName(e.target.value)} className="h-11 rounded-xl" placeholder="e.g. JewelsKart" />
+                  <Input value={storeName} onChange={(e) => setStoreName(e.target.value)} className="h-11 rounded-xl" placeholder="JewelsKart" />
                 </div>
                 <div className="space-y-2">
                   <Label>Business Email</Label>
-                  <Input type="email" value={businessEmail} onChange={(e) => setBusinessEmail(e.target.value)} className="h-11 rounded-xl" placeholder="e.g. info@jewelskart.com" />
+                  <Input type="email" value={businessEmail} onChange={(e) => setBusinessEmail(e.target.value)} className="h-11 rounded-xl" placeholder="info@jewelskartindia.com" />
                 </div>
                 <div className="space-y-2">
                   <Label>Contact Number</Label>
-                  <Input value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} className="h-11 rounded-xl" placeholder="e.g. +91 98765 43210" />
+                  <Input value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} className="h-11 rounded-xl" placeholder="+91 75585 72001" />
                 </div>
                 <div className="space-y-2">
                   <Label>WhatsApp Number</Label>
-                  <Input value={whatsAppNumber} onChange={(e) => setWhatsAppNumber(e.target.value)} className="h-11 rounded-xl" placeholder="e.g. +91 98765 43210" />
+                  <Input value={whatsAppNumber} onChange={(e) => setWhatsAppNumber(e.target.value)} className="h-11 rounded-xl" placeholder="+91 75585 72001" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 <div className="space-y-2">
                   <Label>Store Logo URL</Label>
-                  <Input value={storeLogo} onChange={(e) => setStoreLogo(e.target.value)} className="h-11 rounded-xl" placeholder="Logo image URL" />
+                  <Input value={storeLogo} onChange={(e) => setStoreLogo(e.target.value)} className="h-11 rounded-xl font-mono text-xs" placeholder="https://res.cloudinary.com/dkawppfwu/image/upload/v1777292088/logo_1777288427544_z5hkug.png" />
                 </div>
                 <div className="space-y-2">
                   <Label>Favicon URL</Label>
-                  <Input value={favicon} onChange={(e) => setFavicon(e.target.value)} className="h-11 rounded-xl" placeholder="Favicon image URL" />
+                  <Input value={favicon} onChange={(e) => setFavicon(e.target.value)} className="h-11 rounded-xl font-mono text-xs" placeholder="https://res.cloudinary.com/dkawppfwu/image/upload/v1777292088/logo_1777288427544_z5hkug.png" />
                 </div>
               </div>
 
               <div className="space-y-2 pt-2">
                 <Label>Store Address</Label>
-                <Input value={storeAddress} onChange={(e) => setStoreAddress(e.target.value)} className="h-11 rounded-xl" placeholder="Store address details" />
+                <Input value={storeAddress} onChange={(e) => setStoreAddress(e.target.value)} className="h-11 rounded-xl" placeholder="Boulevard Towers - JEWELSKART, A-1008, 10th Floor, Near Sadhu Vaswani Chowk, Opp Vijay Sales, Camp, Pune - 411001" />
               </div>
             </CardContent>
           </Card>
@@ -242,11 +256,11 @@ export default function SettingsPage() {
                   <motion.div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2" initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}>
                     <div className="space-y-2">
                       <Label>Zoho Account ID</Label>
-                      <Input type="text" value={zohoAccountId} onChange={(e) => setZohoAccountId(e.target.value)} className="h-11 rounded-xl font-mono" placeholder="23137556" />
+                      <Input type="text" value={zohoAccountId} onChange={(e) => setZohoAccountId(e.target.value)} className="h-11 rounded-xl font-mono" placeholder="60080771057" />
                     </div>
                     <div className="space-y-2">
                       <Label>Zoho API Key</Label>
-                      <Input type="password" value={zohoApiKey} onChange={(e) => setZohoApiKey(e.target.value)} className="h-11 rounded-xl font-mono" placeholder="Zoho API Key" />
+                      <Input type="password" value={zohoApiKey} onChange={(e) => setZohoApiKey(e.target.value)} className="h-11 rounded-xl font-mono" placeholder="1003.6314fc4a7d42b81ac85f1ca3dbc545eb..." />
                     </div>
                   </motion.div>
                 )}
@@ -297,7 +311,7 @@ export default function SettingsPage() {
           <Card className="glass-card rounded-2xl">
             <CardHeader>
               <CardTitle className="text-base font-display">Notification Settings</CardTitle>
-              <CardDescription>Toggle specific email alerts and store notifications.</CardDescription>
+              <CardDescription>Toggle specific email alerts and CMS notifications for orders and customers.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-4">
@@ -317,26 +331,6 @@ export default function SettingsPage() {
                     <p className="text-xs text-muted-foreground">Receive system notification when a customer places an order</p>
                   </div>
                   <Switch checked={newOrderAlerts} onCheckedChange={setNewOrderAlerts} />
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/20 transition-colors">
-                  <div className="space-y-0.5">
-                    <Label className="font-semibold text-sm">Product Availability Alerts</Label>
-                    <p className="text-xs text-muted-foreground">Alert when a product is marked unavailable by admin</p>
-                  </div>
-                  <Switch checked={lowStockAlerts} onCheckedChange={setLowStockAlerts} />
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/20 transition-colors">
-                  <div className="space-y-0.5">
-                    <Label className="font-semibold text-sm">New Order Notifications</Label>
-                    <p className="text-xs text-muted-foreground">Alert immediately when a new customer order is placed</p>
-                  </div>
-                  <Switch checked={outOfStockAlerts} onCheckedChange={setOutOfStockAlerts} />
                 </div>
               </div>
             </CardContent>

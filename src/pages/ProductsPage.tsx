@@ -93,7 +93,7 @@ interface Product {
   categoryId?: string;
   categoryName?: string;
   brand?: string;
-  stock: number;
+  stock?: number;
   isAvailableForOrder?: boolean;
   description: string;
   images: string[];
@@ -155,9 +155,8 @@ const finishOptions = ["High Polish", "Matte", "Brushed", "Antique", "Diamond Cu
 const hallmarkOptions = ["BIS Hallmarked", "Hallmark Certified", "No Hallmark"];
 const certificationOptions = ["IGI Certified", "GIA Certified", "SGL Certified", "Not Certified"];
 const genderOptions = ["Women", "Men", "Unisex", "Kids"];
-const occasionOptions = ["Wedding", "Anniversary", "Birthday", "Engagement", "Casual", "Festival"];
-const materialOptions = ["18K Gold", "22K Gold", "24K Gold", "Platinum", "Silver", "Rose Gold", "White Gold"];
-const stoneTypeOptions = ["Diamond", "Ruby", "Emerald", "Sapphire", "Pearl", "No Stone"];
+const materialOptions = ["Gold", "Rose Gold"];
+const stoneTypeOptions = ["Diamond", "Semi Precious Stone"];
 const gstOptions = [
   { label: "0% (Exempt)", value: 0 },
   { label: "3% (Jewellery Standard)", value: 3 },
@@ -277,7 +276,6 @@ const ProductForm = ({
     gst: product?.gst !== undefined ? product.gst : 3,
     category: getCategoryName(product?.category),
     brand: "JewelsKart Original",
-    stock: product?.stock?.toString() || "",
     isAvailableForOrder: product?.isAvailableForOrder !== undefined ? product.isAvailableForOrder : true,
     description: product?.description || "",
     images: [] as string[],
@@ -287,16 +285,14 @@ const ProductForm = ({
     status: product?.status || "Draft",
     sku: product?.sku || "",
 
-    material: product?.specifications?.material || "18K Gold",
+    material: product?.specifications?.material || "Gold",
     ringSizes: Array.isArray(product?.specifications?.ringSizes) ? product.specifications.ringSizes : [],
     finish: product?.specifications?.finish || "High Polish",
     hallmark: product?.specifications?.hallmark || "BIS Hallmarked",
     certification: product?.specifications?.certification || "IGI Certified",
     gender: product?.specifications?.gender || "Women",
-    occasion: product?.specifications?.occasion || "Wedding",
     stoneType: product?.specifications?.stoneType || "Diamond",
     stoneWeight: product?.specifications?.stoneWeight?.toString() || "",
-    warranty: product?.specifications?.warranty || "1 Year Manufacturing Warranty",
 
     careInstructions: product?.careInstructions?.instructions || DEFAULT_CARE_INSTRUCTIONS,
 
@@ -531,7 +527,6 @@ const ProductForm = ({
       price: parseFloat(form.price) || 0,
       purchasePrice: parseFloat(form.purchasePrice) || 0,
       gst: form.gst,
-      stock: parseInt(form.stock) || 0,
       isAvailableForOrder: form.isAvailableForOrder,
       weight: parseFloat(form.weight) || 0,
       brand: "JewelsKart Original",
@@ -642,19 +637,6 @@ const ProductForm = ({
             />
           </div>
           <div className="space-y-2">
-            <Label>Stock Quantity</Label>
-            <Input
-              type="number"
-              className="h-11 rounded-xl w-full"
-              value={form.stock}
-              onChange={e => setForm({ ...form, stock: e.target.value })}
-              placeholder="0"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
             <Label className="font-medium text-foreground">Status</Label>
             <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
               <SelectTrigger className="h-11 rounded-xl w-full">
@@ -667,22 +649,22 @@ const ProductForm = ({
               </SelectContent>
             </Select>
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label className="font-medium text-foreground">Available for Order</Label>
-            <Select
-              value={form.isAvailableForOrder ? "yes" : "no"}
-              onValueChange={v => setForm({ ...form, isAvailableForOrder: v === "yes" })}
-            >
-              <SelectTrigger className="h-11 rounded-xl w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="yes">✨ Yes (Made to Order)</SelectItem>
-                <SelectItem value="no">🚫 No (Currently Unavailable)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="space-y-2">
+          <Label className="font-medium text-foreground">Available for Order</Label>
+          <Select
+            value={form.isAvailableForOrder ? "yes" : "no"}
+            onValueChange={v => setForm({ ...form, isAvailableForOrder: v === "yes" })}
+          >
+            <SelectTrigger className="h-11 rounded-xl w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="yes">✨ Yes (Made to Order)</SelectItem>
+              <SelectItem value="no">🚫 No (Currently Unavailable)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-2">
@@ -992,31 +974,6 @@ const ProductForm = ({
               value={form.stoneWeight}
               onChange={e => setForm({ ...form, stoneWeight: e.target.value })}
               placeholder="e.g., 0.5 ct"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Occasion</Label>
-            <Select value={form.occasion} onValueChange={v => setForm({ ...form, occasion: v })}>
-              <SelectTrigger className="h-11 rounded-xl w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {occasionOptions.map(o => (
-                  <SelectItem key={o} value={o}>{o}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Warranty</Label>
-            <Input
-              className="h-11 rounded-xl w-full"
-              value={form.warranty}
-              onChange={e => setForm({ ...form, warranty: e.target.value })}
-              placeholder="e.g., 1 Year Manufacturing Warranty"
             />
           </div>
         </div>
@@ -1696,7 +1653,7 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
                     <p className="text-xs text-muted-foreground">Material</p>
-                    <p className="font-medium">{product.specifications?.material || "18K Gold"}</p>
+                    <p className="font-medium">{product.specifications?.material || "Gold"}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Finish</p>
@@ -1714,11 +1671,7 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
                     <p className="text-xs text-muted-foreground">Gender</p>
                     <p className="font-medium">{product.specifications?.gender || "Women"}</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Occasion</p>
-                    <p className="font-medium">{product.specifications?.occasion || "Wedding"}</p>
-                  </div>
-                  {product.specifications?.stoneType && product.specifications.stoneType !== "No Stone" && (
+                  {product.specifications?.stoneType && (
                     <>
                       <div>
                         <p className="text-xs text-muted-foreground">Stone Type</p>
@@ -1732,10 +1685,6 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
                       )}
                     </>
                   )}
-                  <div>
-                    <p className="text-xs text-muted-foreground">Warranty</p>
-                    <p className="font-medium">{product.specifications?.warranty || "1 Year Manufacturing Warranty"}</p>
-                  </div>
                 </div>
               </motion.div>
             )}
@@ -1936,11 +1885,11 @@ export default function ProductsPage() {
         purchasePrice: productData.purchasePrice,
         category: productData.category,
         brand: "JewelsKart Original",
-        stock: productData.stock,
         description: productData.description,
         sku: productData.sku,
         tags: productData.tags,
         status: productData.status,
+        isAvailableForOrder: productData.isAvailableForOrder,
         goldDetails: productData.weight ? {
           weight: productData.weight,
           purity: productData.purity,
@@ -1953,10 +1902,8 @@ export default function ProductsPage() {
           certification: productData.certification,
           ringSizes: productData.ringSizes || [],
           gender: productData.gender,
-          occasion: productData.occasion,
           stoneType: productData.stoneType,
           stoneWeight: productData.stoneWeight,
-          warranty: productData.warranty,
         },
         careInstructions: {
           instructions: productData.careInstructions || DEFAULT_CARE_INSTRUCTIONS,
@@ -2344,7 +2291,6 @@ export default function ProductsPage() {
             purchasePrice: parseFloat(productData.purchase_price) || 0,
             category: category,
             brand: productData.brand || "JewelsKart Original",
-            stock: parseInt(productData.stock) || 0,
             description: productData.description || "",
             sku: sku,
             tags: tags,
@@ -2356,16 +2302,14 @@ export default function ProductsPage() {
               makingCharge: parseFloat(productData.making_charge) || 0,
             },
             specifications: {
-              material: productData.material || "18K Gold",
+              material: productData.material || "Gold",
               finish: productData.finish || "High Polish",
               hallmark: productData.hallmark || "BIS Hallmarked",
               certification: productData.certification || "IGI Certified",
               ringSizes: ringSizes,
               gender: productData.gender || "Women",
-              occasion: productData.occasion || "Wedding",
               stoneType: productData.stone_type || "Diamond",
               stoneWeight: parseFloat(productData.stone_weight) || 0,
-              warranty: productData.warranty || "1 Year Manufacturing Warranty",
             },
             careInstructions: {
               instructions: careInstructions,
@@ -2472,7 +2416,6 @@ export default function ProductsPage() {
       "purchase_price",
       "category",
       "brand",
-      "stock",
       "description",
       "image_urls",
       "weight",
@@ -2489,10 +2432,8 @@ export default function ProductsPage() {
       "returns",
       "payment",
       "gender",
-      "occasion",
       "stone_type",
       "stone_weight",
-      "warranty",
       "status",
       "rating",
       "review_count"
@@ -2504,13 +2445,12 @@ export default function ProductsPage() {
       "35000",
       "Rings",
       "JewelsKart Original",
-      "8",
       "A stunning diamond ring with excellent craftsmanship",
       "https://example.com/image1.jpg|https://example.com/image2.jpg|https://example.com/image3.jpg",
       "12",
       "22K",
       "",
-      "18K Gold",
+      "Gold",
       "High Polish",
       "BIS Hallmarked",
       "Best Seller|New Arrival",
@@ -2521,10 +2461,8 @@ export default function ProductsPage() {
       "7 Days Return",
       "Secure Payment",
       "Women",
-      "Wedding",
       "Diamond",
       "0.5",
-      "1 Year Manufacturing Warranty",
       "Published",
       "4.5",
       "24"
@@ -2574,11 +2512,11 @@ export default function ProductsPage() {
       price: formData.price,
       purchasePrice: formData.purchasePrice,
       category: formData.category,
-      stock: formData.stock,
       description: formData.description,
       tags: formData.tags,
       brand: "JewelsKart Original",
       status: formData.status,
+      isAvailableForOrder: formData.isAvailableForOrder,
       sku: formData.sku,
       keptImages: formData.keptImages || [],
       existingMainImage: formData.existingMainImage,
@@ -2591,10 +2529,8 @@ export default function ProductsPage() {
         certification: formData.certification,
         ringSizes: formData.ringSizes,
         gender: formData.gender,
-        occasion: formData.occasion,
         stoneType: formData.stoneType,
         stoneWeight: formData.stoneWeight,
-        warranty: formData.warranty,
       },
       careInstructions: {
         instructions: formData.careInstructions || DEFAULT_CARE_INSTRUCTIONS,
@@ -2881,13 +2817,6 @@ export default function ProductsPage() {
                     <p className="font-bold text-primary text-lg">₹{(product.price || 0).toLocaleString()}</p>
                   </div>
 
-                  <div className="text-center min-w-[100px]">
-                    <p className="text-xs text-muted-foreground mb-1">Stock</p>
-                    <p className={`font-bold text-lg ${(product.stock || 0) === 0 ? "text-destructive" : (product.stock || 0) <= 3 ? "text-amber-500" : "text-foreground"}`}>
-                      {(product.stock || 0) === 0 ? "Out" : product.stock}
-                    </p>
-                  </div>
-
                   <div className="min-w-[120px]">
                     <p className="text-xs text-muted-foreground mb-1">Status</p>
                     <Badge className={`${statusColors[product.status]} border rounded-full px-3 py-1.5`}>
@@ -2914,26 +2843,6 @@ export default function ProductsPage() {
                       title="Edit Product"
                     >
                       <Edit className="h-4 w-4" />
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleStockChange(productId!, 1)}
-                      className="h-9 w-9 rounded-xl text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all duration-200"
-                      title="Add Stock"
-                    >
-                      <PlusCircle className="h-4 w-4" />
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleStockChange(productId!, -1)}
-                      className="h-9 w-9 rounded-xl text-amber-600 hover:bg-amber-600 hover:text-white transition-all duration-200"
-                      title="Remove Stock"
-                    >
-                      <MinusCircle className="h-4 w-4" />
                     </Button>
 
                     <Button
