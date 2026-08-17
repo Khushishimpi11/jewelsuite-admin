@@ -1,22 +1,23 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const envMode = env.VITE_ENV_MODE || "development";
-  const apiUrl = envMode === "production"
-    ? "https://jewelskart-backend-gt7z.onrender.com/api"
-    : "http://localhost:5000/api";
-  
+  const apiUrl =
+    envMode === "production"
+      ? "https://jewelskart-backend-gt7z.onrender.com/api"
+      : "http://localhost:5000/api";
+
   process.env.VITE_API_URL = apiUrl;
 
   return {
     define: {
       "import.meta.env.VITE_API_URL": JSON.stringify(apiUrl),
     },
+
     server: {
       host: "::",
       port: 8080,
@@ -24,7 +25,9 @@ export default defineConfig(({ mode }) => {
         overlay: false,
       },
     },
-    plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+
+    plugins: [react()],
+
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
