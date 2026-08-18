@@ -31,18 +31,18 @@ const PaymentStatusBadge = ({ status }: { status: string }) => {
     if (s === "COD") return { label: "COD", color: "cod" };
     return { label: s, color: "default" };
   };
-  
+
   const display = getStatusDisplay(status);
-  
-  const colorClasses = {
-    success: "bg-emerald-100 text-emerald-700",
-    failed: "bg-red-100 text-red-700",
-    refunded: "bg-orange-100 text-orange-700",
-    pending: "bg-yellow-100 text-yellow-700",
-    cod: "bg-blue-100 text-blue-700",
-    default: "bg-gray-100 text-gray-700",
+
+  const colorClasses: Record<string, string> = {
+    success: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+    failed: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    refunded: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+    pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+    cod: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    default: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
   };
-  
+
   return (
     <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${colorClasses[display.color]}`}>
       {display.label}
@@ -66,19 +66,19 @@ interface ZohoPaymentDetails {
 
 export default function PaymentsPage() {
   const navigate = useNavigate();
-  const { 
+  const {
     orders,
     products,
     loading,
     error,
     token
   } = useJewelleryCMS();
-  
+
   const [viewTxn, setViewTxn] = useState<Order | null>(null);
   const [invoiceTxn, setInvoiceTxn] = useState<Order | null>(null);
   const [localTransactions, setLocalTransactions] = useState<any[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  
+
   // Zoho payment details state
   const [paymentDetailsDialogOpen, setPaymentDetailsDialogOpen] = useState(false);
   const [selectedPaymentDetails, setSelectedPaymentDetails] = useState<ZohoPaymentDetails | null>(null);
@@ -111,24 +111,24 @@ export default function PaymentsPage() {
       toast({ title: "Error", description: "No payment ID found", variant: "destructive" });
       return;
     }
-    
+
     setLoadingPaymentDetails(true);
     try {
       const response = await fetch(`${API_BASE_URL}/payment/details/${paymentId}`, {
         headers: getAuthHeaders(),
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setSelectedPaymentDetails(data.payment);
         setPaymentDetailsDialogOpen(true);
       } else {
-        toast({ title: "Error", description: data.message, variant: "destructive" });
+        toast({ title: "Error", description: data.message || "Failed to fetch payment details", variant: "destructive" });
       }
     } catch (error: any) {
       console.error("Error fetching payment details:", error);
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message || "An error occurred", variant: "destructive" });
     } finally {
       setLoadingPaymentDetails(false);
     }
@@ -140,13 +140,13 @@ export default function PaymentsPage() {
       const response = await fetch(`${API_BASE_URL}/payment/refund-status/${refundId}`, {
         headers: getAuthHeaders(),
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
-        toast({ 
-          title: "Refund Status", 
-          description: `Refund ${data.refund.status.toUpperCase()} for ₹${data.refund.amount}` 
+        toast({
+          title: "Refund Status",
+          description: `Refund ${data.refund.status.toUpperCase()} for ₹${data.refund.amount}`
         });
       }
     } catch (error: any) {
@@ -180,23 +180,23 @@ export default function PaymentsPage() {
       else if (order.paymentStatus === "Failed") displayStatus = "FAILED";
       else if (order.paymentStatus === "Refunded") displayStatus = "REFUNDED";
       else if (order.paymentStatus === "Pending") displayStatus = "PENDING";
-      
+
       // Get order items (supports both products and items)
       const orderItems = getOrderItems(order);
       const firstItem = orderItems[0];
-      
+
       // Try to get product from products list
       let productImage = null;
       let productName = firstItem?.name || firstItem?.productName || "Multiple Items";
-      
+
       if (firstItem?.productId) {
         const product = products.find(p => p.id === firstItem.productId);
         productImage = product?.images?.[0];
         productName = firstItem.name || product?.name || productName;
       }
-      
+
       return {
-        id: order.paymentId ? `pay_${order.paymentId.slice(-8)}` : `TXN-${order.id?.slice(-6)}`,
+        id: order.paymentId ? `pay_${order.paymentId.slice(-8)}` : `TXN-${order.id?.slice(-6) || '000000'}`,
         fullPaymentId: order.paymentId || null,
         orderId: order.orderNumber,
         orderNumber: order.orderNumber,
@@ -215,7 +215,7 @@ export default function PaymentsPage() {
         items: orderItems  // Store items for display
       };
     });
-    
+
     setLocalTransactions(transactions);
   }, [orders, products]);
 
@@ -223,15 +223,15 @@ export default function PaymentsPage() {
   const totalReceived = localTransactions
     .filter(t => t.status === "SUCCESS" || t.status === "Paid")
     .reduce((sum, t) => sum + t.amount, 0);
-  
+
   const pendingAmount = localTransactions
     .filter(t => t.status === "PENDING")
     .reduce((sum, t) => sum + t.amount, 0);
-  
+
   const failedAmount = localTransactions
     .filter(t => t.status === "FAILED")
     .reduce((sum, t) => sum + t.amount, 0);
-  
+
   const refundedAmount = localTransactions
     .filter(t => t.status === "REFUNDED")
     .reduce((sum, t) => sum + t.amount, 0);
@@ -340,8 +340,8 @@ export default function PaymentsPage() {
                             onClick={() => copyToClipboard(t.fullPaymentId, `payment-${t.id}`)}
                             className="p-0.5 hover:bg-primary/10 rounded"
                           >
-                            {copiedId === `payment-${t.id}` ? 
-                              <Check className="w-3 h-3 text-green-500" /> : 
+                            {copiedId === `payment-${t.id}` ?
+                              <Check className="w-3 h-3 text-green-500" /> :
                               <Copy className="w-3 h-3 text-muted-foreground" />
                             }
                           </button>
@@ -349,7 +349,7 @@ export default function PaymentsPage() {
                       </div>
                     </td>
                     <td className="py-3">
-                      <button 
+                      <button
                         onClick={() => goToOrderPage(t.orderId)}
                         className="text-primary hover:underline font-medium cursor-pointer"
                       >
@@ -370,31 +370,31 @@ export default function PaymentsPage() {
                     <td className="py-3 text-muted-foreground hidden md:table-cell">{t.date}</td>
                     <td className="py-3 text-right">
                       <div className="flex items-center justify-end gap-0.5">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 rounded-lg hover:bg-primary/10" 
-                          title="View Order Details" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-lg hover:bg-primary/10"
+                          title="View Order Details"
                           onClick={() => setViewTxn(t.order)}
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </Button>
                         {t.fullPaymentId && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 rounded-lg hover:bg-emerald-500/10" 
-                            title="View Zoho Payment Details" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-lg hover:bg-emerald-500/10"
+                            title="View Zoho Payment Details"
                             onClick={() => fetchPaymentDetails(t.fullPaymentId)}
                           >
                             <Receipt className="h-3.5 w-3.5" />
                           </Button>
                         )}
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 rounded-lg hover:bg-primary/10" 
-                          title="Invoice" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-lg hover:bg-primary/10"
+                          title="Invoice"
                           onClick={() => setInvoiceTxn(t.order)}
                         >
                           <FileText className="h-3.5 w-3.5" />
@@ -406,7 +406,7 @@ export default function PaymentsPage() {
               </tbody>
             </table>
           </div>
-          
+
           {localTransactions.length === 0 && (
             <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
               <CreditCard className="h-12 w-12 text-primary/30 mb-4" />
@@ -417,7 +417,7 @@ export default function PaymentsPage() {
         </CardContent>
       </Card>
 
-      {/* ========== TRANSACTION DETAILS DIALOG (FIXED - Products/Items both) ========== */}
+      {/* ========== TRANSACTION DETAILS DIALOG ========== */}
       <Dialog open={!!viewTxn} onOpenChange={() => setViewTxn(null)}>
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
@@ -426,80 +426,79 @@ export default function PaymentsPage() {
           {viewTxn && (
             <div className="space-y-4">
               {/* Products Section - Supports both 'products' and 'items' arrays */}
-              {/* Products Section - Updated Layout */}
-<div className="space-y-3">
-  {(viewTxn.products && viewTxn.products.length > 0) || (viewTxn.items && viewTxn.items.length > 0) ? (
-    (viewTxn.products && viewTxn.products.length > 0 ? viewTxn.products : viewTxn.items).map((product: any, idx: number) => {
-      // Get product name (supports different field names)
-      const productName = product.name || product.productName || product.title || "Product";
-      const productPrice = product.price || product.productPrice || 0;
-      const productQuantity = product.quantity || 1;
-      const productTotal = productPrice * productQuantity;
-      const productSku = product.skuCode || product.sku || product.productSku;
-      
-      // Get product image
-      let productImage = product.image || product.productImage || product.imageUrl;
-      if (!productImage && product.productId) {
-        const fullProduct = products.find(p => p.id === product.productId);
-        productImage = fullProduct?.images?.[0];
-      }
-      
-      return (
-        <div key={idx} className="flex items-center gap-3 p-3 rounded-xl bg-secondary/30">
-          {/* Product Image */}
-          <div className="h-12 w-12 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
-            {productImage ? (
-              <img 
-                src={productImage} 
-                alt={productName}
-                className="h-full w-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://via.placeholder.com/48?text=No+Image';
-                }}
-              />
-            ) : (
-              <Package className="h-6 w-6 text-muted-foreground" />
-            )}
-          </div>
-          
-          {/* Product Info - Name and SKU */}
-          <div className="flex-1">
-            <p className="font-medium text-sm">{productName}</p>
-            {productSku && (
-              <p className="text-xs text-muted-foreground font-mono">SKU: {productSku}</p>
-            )}
-          </div>
-          
-          {/* Product Price and Quantity - Right side */}
-          <div className="text-right">
-            <p className="font-semibold text-sm">₹{productTotal.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">Qty: {productQuantity}</p>
-          </div>
-        </div>
-      );
-    })
-  ) : (
-    <div className="text-center py-6 text-muted-foreground bg-secondary/20 rounded-lg">
-      <Package className="h-10 w-10 mx-auto mb-2 opacity-50" />
-      <p className="text-sm">No products found in this order</p>
-    </div>
-  )}
-</div>
-              
+              <div className="space-y-3">
+                {getOrderItems(viewTxn).length > 0 ? (
+                  getOrderItems(viewTxn).map((product: any, idx: number) => {
+                    // Get product name (supports different field names)
+                    const productName = product.name || product.productName || product.title || "Product";
+                    const productPrice = product.price || product.productPrice || 0;
+                    const productQuantity = product.quantity || 1;
+                    const productTotal = productPrice * productQuantity;
+                    const productSku = product.skuCode || product.sku || product.productSku;
+
+                    // Get product image
+                    let productImage = product.image || product.productImage || product.imageUrl;
+                    if (!productImage && product.productId) {
+                      const fullProduct = products.find(p => p.id === product.productId);
+                      productImage = fullProduct?.images?.[0];
+                    }
+
+                    return (
+                      <div key={idx} className="flex items-center gap-3 p-3 rounded-xl bg-secondary/30">
+                        {/* Product Image */}
+                        <div className="h-12 w-12 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {productImage ? (
+                            <img
+                              src={productImage}
+                              alt={productName}
+                              className="h-full w-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'https://via.placeholder.com/48?text=No+Image';
+                              }}
+                            />
+                          ) : (
+                            <Package className="h-6 w-6 text-muted-foreground" />
+                          )}
+                        </div>
+
+                        {/* Product Info - Name and SKU */}
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{productName}</p>
+                          {productSku && (
+                            <p className="text-xs text-muted-foreground font-mono">SKU: {productSku}</p>
+                          )}
+                        </div>
+
+                        {/* Product Price and Quantity - Right side */}
+                        <div className="text-right">
+                          <p className="font-semibold text-sm">₹{productTotal.toLocaleString()}</p>
+                          <p className="text-xs text-muted-foreground">Qty: {productQuantity}</p>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground bg-secondary/20 rounded-lg">
+                    <Package className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No products found in this order</p>
+                  </div>
+                )}
+              </div>
+
               {/* Order Total */}
               <div className="flex justify-between items-center pt-2 border-t">
                 <span className="font-semibold">Total Amount</span>
-                <span className="font-bold text-lg text-primary">₹{viewTxn.total?.toLocaleString()}</span>
+                <span className="font-bold text-lg text-primary">₹{viewTxn.total?.toLocaleString() || 0}</span>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-xs text-muted-foreground">Transaction ID</p>
-                  <p className="font-mono font-medium text-xs">TXN-{viewTxn.id?.slice(-6)}</p>
+                  <p className="font-mono font-medium text-xs">TXN-{viewTxn.id?.slice(-6) || '000000'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Order</p>
-                  <button 
+                  <button
                     onClick={() => goToOrderPage(viewTxn.orderNumber)}
                     className="font-medium text-primary hover:underline flex items-center gap-1"
                   >
@@ -524,32 +523,32 @@ export default function PaymentsPage() {
                   <PaymentStatusBadge status={viewTxn.paymentStatus || "PENDING"} />
                 </div>
               </div>
-              
+
               {/* View Order Button */}
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="w-full"
                 onClick={() => goToOrderPage(viewTxn.orderNumber)}
               >
                 <Eye className="w-4 h-4 mr-2" />
                 View Full Order Details
               </Button>
-              
+
               {/* Zoho Payment ID Section */}
               {viewTxn.paymentId && (
                 <div className="border-t pt-3">
                   <p className="text-xs text-muted-foreground mb-2">Zoho Payment ID</p>
                   <div className="flex items-center gap-2 bg-secondary/30 p-2 rounded-lg">
                     <code className="text-xs font-mono flex-1">{viewTxn.paymentId}</code>
-                    <button onClick={() => copyToClipboard(viewTxn.paymentId, 'zoho-pid')}>
+                    <button onClick={() => copyToClipboard(viewTxn.paymentId!, 'zoho-pid')}>
                       {copiedId === 'zoho-pid' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                     </button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
+                    <Button
+                      size="sm"
+                      variant="outline"
                       className="h-7 text-xs"
-                      onClick={() => fetchPaymentDetails(viewTxn.paymentId)}
+                      onClick={() => fetchPaymentDetails(viewTxn.paymentId!)}
                     >
                       <ExternalLink className="w-3 h-3 mr-1" />
                       Details
@@ -557,12 +556,12 @@ export default function PaymentsPage() {
                   </div>
                 </div>
               )}
-              
+
               {/* Refund Info Section */}
               {viewTxn.refundId && (
                 <div className="border-t pt-3">
                   <p className="text-xs text-muted-foreground mb-2">Refund Information</p>
-                  <div className="bg-orange-50 p-3 rounded-lg">
+                  <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg">
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="text-xs text-muted-foreground">Refund ID</p>
@@ -570,14 +569,14 @@ export default function PaymentsPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-muted-foreground">Refund Amount</p>
-                        <p className="font-semibold text-orange-600">₹{viewTxn.refundAmount?.toLocaleString()}</p>
+                        <p className="font-semibold text-orange-600">₹{viewTxn.refundAmount?.toLocaleString() || 0}</p>
                       </div>
                     </div>
-                    <Button 
-                      size="sm" 
-                      variant="link" 
+                    <Button
+                      size="sm"
+                      variant="link"
                       className="p-0 h-auto mt-2 text-xs"
-                      onClick={() => fetchRefundStatus(viewTxn.refundId)}
+                      onClick={() => fetchRefundStatus(viewTxn.refundId!)}
                     >
                       Check Refund Status
                     </Button>
@@ -622,7 +621,7 @@ export default function PaymentsPage() {
                   <PaymentStatusBadge status={selectedPaymentDetails.status} />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-xs text-muted-foreground">Payment Method</p>
@@ -645,30 +644,30 @@ export default function PaymentsPage() {
                   <p className="text-sm">{new Date(selectedPaymentDetails.createdAt).toLocaleString()}</p>
                 </div>
               </div>
-              
+
               {selectedPaymentDetails.refundId && (
                 <div className="border-t pt-3">
                   <p className="text-xs text-muted-foreground mb-2">Refund Information</p>
-                  <div className="bg-orange-50 p-3 rounded-lg">
+                  <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg">
                     <p className="text-xs text-muted-foreground">Refund ID</p>
                     <code className="text-xs font-mono">{selectedPaymentDetails.refundId}</code>
                   </div>
                 </div>
               )}
-              
+
               {selectedPaymentDetails.description && (
                 <div className="border-t pt-3">
                   <p className="text-xs text-muted-foreground">Description</p>
                   <p className="text-sm">{selectedPaymentDetails.description}</p>
                 </div>
               )}
-              
+
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="outline" size="sm" onClick={() => setPaymentDetailsDialogOpen(false)}>
                   Close
                 </Button>
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   variant="default"
                   onClick={() => window.open(`https://payments.zoho.in`, '_blank')}
                 >
@@ -711,16 +710,16 @@ export default function PaymentsPage() {
                   <p className="font-medium">{invoiceTxn.paymentMethod || "ONLINE"}</p>
                 </div>
               </div>
-              
+
               {invoiceTxn.paymentId && (
                 <div className="bg-secondary/20 p-2 rounded-lg">
                   <p className="text-xs text-muted-foreground">Zoho Payment ID</p>
                   <code className="text-xs font-mono">{invoiceTxn.paymentId}</code>
                 </div>
               )}
-              
+
               <div className="p-3 rounded-xl bg-secondary/30">
-                {(invoiceTxn.products && invoiceTxn.products.length > 0 ? invoiceTxn.products : invoiceTxn.items || []).map((product: any, idx: number) => (
+                {getOrderItems(invoiceTxn).map((product: any, idx: number) => (
                   <div key={idx} className="flex justify-between text-sm py-1">
                     <span>{product.name || product.productName} × {product.quantity}</span>
                     <span className="font-medium">₹{(product.price * product.quantity).toLocaleString()}</span>

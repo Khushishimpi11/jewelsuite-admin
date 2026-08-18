@@ -38,8 +38,10 @@ interface ProductSpecifications {
   ringSizes?: string[];
   gender?: string;
   occasion?: string;
-  stoneType?: string;
+  stoneType?: string;  // "none" | "diamond" | "semi_precious" | "both"
   stoneWeight?: number;
+  diamondWeight?: number;
+  semiPreciousWeight?: number;
   warranty?: string;
 }
 
@@ -82,6 +84,13 @@ interface Category {
   isActive: boolean;
 }
 
+interface CoupleRingDetails {
+  womenPrice?: number;
+  womenWeight?: number;
+  menPrice?: number;
+  menWeight?: number;
+}
+
 interface Product {
   _id?: string;
   id?: string;
@@ -106,6 +115,7 @@ interface Product {
   featured?: boolean;
   bestSeller?: boolean;
   goldDetails?: GoldDetails;
+  coupleRing?: CoupleRingDetails;
   specifications?: ProductSpecifications;
   careInstructions?: CareInstructions;
   additionalInfo?: AdditionalInfo;
@@ -156,7 +166,20 @@ const hallmarkOptions = ["BIS Hallmarked", "Hallmark Certified", "No Hallmark"];
 const certificationOptions = ["IGI Certified", "GIA Certified", "SGL Certified", "Not Certified"];
 const genderOptions = ["Women", "Men", "Unisex", "Kids"];
 const materialOptions = ["Gold", "Rose Gold"];
-const stoneTypeOptions = ["Diamond", "Semi Precious Stone"];
+const stoneTypeOptions = [
+  { label: "No Stone", value: "none" },
+  { label: "💎 Diamond", value: "diamond" },
+  { label: "💠 Semi Precious", value: "semi_precious" },
+  { label: "💎Diamond + 💠 BothSemi Precious stone", value: "both" },  // ✅ YEH NAYA OPTION
+];
+
+const getStoneTypeFromOldData = (type?: string): string => {
+  if (!type || type === "None" || type === "none") return "none";
+  if (type === "Diamond" || type === "diamond") return "diamond";
+  if (type === "Semi Precious Stone" || type === "semi_precious") return "semi_precious";
+  if (type === "both") return "both";
+  return "none";
+};
 const gstOptions = [
   { label: "0% (Exempt)", value: 0 },
   { label: "3% (Jewellery Standard)", value: 3 },
@@ -199,6 +222,43 @@ const parseCSVLine = (line: string): string[] => {
 
   result.push(current.trim());
   return result;
+};
+
+// Helper to parse saved material specification into selected options
+const parseMaterials = (val?: string | string[]): string[] => {
+  if (!val) return ["Gold"];
+  if (Array.isArray(val)) {
+    const list = val.map(s => String(s).trim()).filter(Boolean);
+    return list.length > 0 ? list : ["Gold"];
+  }
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (!trimmed) return ["Gold"];
+    const hasRose = /rose\s*gold/i.test(trimmed);
+    const hasPureGold = /(^|[^a-zA-Z])gold([^a-zA-Z]|$)/i.test(trimmed.replace(/rose\s*gold/gi, ""));
+
+    if (hasRose && hasPureGold) {
+      return ["Gold", "Rose Gold"];
+    } else if (hasRose) {
+      return ["Rose Gold"];
+    } else if (hasPureGold || trimmed.toLowerCase().includes("gold")) {
+      return ["Gold"];
+    }
+    const parts = trimmed.split(/[,|\/]/).map(s => s.trim()).filter(Boolean);
+    return parts.length > 0 ? parts : ["Gold"];
+  }
+  return ["Gold"];
+};
+
+// Helper to check if a category is Couple Ring
+const isCoupleRingCategory = (cat?: string | Category, prodName?: string, coupleRing?: any): boolean => {
+  if (coupleRing && (coupleRing.womenPrice || coupleRing.menPrice)) return true;
+  const name = typeof cat === "string" ? cat : (cat?.name || "");
+  const lower = name.trim().toLowerCase().replace(/[-_]/g, " ");
+  if (lower === "couple ring" || lower === "couple rings" || lower.includes("couple ring") || lower.includes("couple")) return true;
+  const pName = (prodName || "").toLowerCase().trim();
+  if (pName.includes("couple ring") || pName.includes("couple set")) return true;
+  return false;
 };
 
 // ========== PRODUCT FORM COMPONENT ==========
@@ -284,22 +344,25 @@ const ProductForm = ({
     tags: product?.tags || [] as string[],
     status: product?.status || "Draft",
     sku: product?.sku || "",
-
+    womenPrice: product?.coupleRing?.womenPrice !== undefined ? product.coupleRing.womenPrice.toString() : "",
+    womenWeight: product?.coupleRing?.womenWeight !== undefined ? product.coupleRing.womenWeight.toString() : "",
+    menPrice: product?.coupleRing?.menPrice !== undefined ? product.coupleRing.menPrice.toString() : "",
+    menWeight: product?.coupleRing?.menWeight !== undefined ? product.coupleRing.menWeight.toString() : "",
     material: product?.specifications?.material || "Gold",
+    materials: parseMaterials(product?.specifications?.material),
     ringSizes: Array.isArray(product?.specifications?.ringSizes) ? product.specifications.ringSizes : [],
     finish: product?.specifications?.finish || "High Polish",
     hallmark: product?.specifications?.hallmark || "BIS Hallmarked",
     certification: product?.specifications?.certification || "IGI Certified",
     gender: product?.specifications?.gender || "Women",
-    stoneType: product?.specifications?.stoneType || "Diamond",
+    stoneType: product?.specifications?.stoneType || "none",
     stoneWeight: product?.specifications?.stoneWeight?.toString() || "",
-
+    diamondWeight: product?.specifications?.diamondWeight?.toString() || "",
+    semiPreciousWeight: product?.specifications?.semiPreciousWeight?.toString() || "",
     careInstructions: product?.careInstructions?.instructions || DEFAULT_CARE_INSTRUCTIONS,
-
     delivery: product?.additionalInfo?.delivery || "3-5 Days",
     returns: product?.additionalInfo?.returns || "7 Days Return Policy",
     payment: product?.additionalInfo?.payment || "Secure Payment Options Available",
-
     reviewRating: product?.reviews?.rating?.toString() || "4.5",
     reviewCount: product?.reviews?.count?.toString() || "0",
   });
@@ -339,6 +402,56 @@ const ProductForm = ({
       setGeneratingSku(false);
     }
   };
+
+  useEffect(() => {
+    if (product) {
+      setForm({
+        name: product.name || "",
+        price: product.price?.toString() || "",
+        purchasePrice: product.purchasePrice?.toString() || "",
+        gst: product.gst !== undefined ? product.gst : 3,
+        category: getCategoryName(product.category),
+        brand: "JewelsKart Original",
+        isAvailableForOrder: product.isAvailableForOrder !== undefined ? product.isAvailableForOrder : true,
+        description: product.description || "",
+        images: [] as string[],
+        weight: product.goldDetails?.weight?.toString() || "",
+        purity: product.goldDetails?.purity || "22K",
+        tags: product.tags || [] as string[],
+        status: product.status || "Draft",
+        sku: product.sku || "",
+        womenPrice: product.coupleRing?.womenPrice !== undefined && product.coupleRing?.womenPrice !== null ? product.coupleRing.womenPrice.toString() : "",
+        womenWeight: product.coupleRing?.womenWeight !== undefined && product.coupleRing?.womenWeight !== null ? product.coupleRing.womenWeight.toString() : "",
+        menPrice: product.coupleRing?.menPrice !== undefined && product.coupleRing?.menPrice !== null ? product.coupleRing.menPrice.toString() : "",
+        menWeight: product.coupleRing?.menWeight !== undefined && product.coupleRing?.menWeight !== null ? product.coupleRing.menWeight.toString() : "",
+        material: product.specifications?.material || "Gold",
+        materials: parseMaterials(product.specifications?.material),
+        ringSizes: Array.isArray(product.specifications?.ringSizes) ? product.specifications.ringSizes : [],
+        finish: product.specifications?.finish || "High Polish",
+        hallmark: product.specifications?.hallmark || "BIS Hallmarked",
+        certification: product.specifications?.certification || "IGI Certified",
+        gender: product.specifications?.gender || "Women",
+
+        // ✅ FIX 1: Stone Type ko "none" default rakhein
+        stoneType: product.specifications?.stoneType || "none",
+
+        // ✅ FIX 2: Stone Weight fields add karein
+        stoneWeight: product.specifications?.stoneWeight?.toString() || "",
+        diamondWeight: product.specifications?.diamondWeight?.toString() || "",
+        semiPreciousWeight: product.specifications?.semiPreciousWeight?.toString() || "",
+
+        careInstructions: product.careInstructions?.instructions || DEFAULT_CARE_INSTRUCTIONS,
+        delivery: product.additionalInfo?.delivery || "3-5 Days",
+        returns: product.additionalInfo?.returns || "7 Days Return Policy",
+        payment: product.additionalInfo?.payment || "Secure Payment Options Available",
+        reviewRating: product.reviews?.rating?.toString() || "4.5",
+        reviewCount: product.reviews?.count?.toString() || "0",
+      });
+      const imgs = getInitialImages();
+      setExistingMainImage(imgs.main);
+      setExistingGalleryImages(imgs.gallery);
+    }
+  }, [product]);
 
   useEffect(() => {
     if (!isEdit && !form.sku && form.category) {
@@ -486,6 +599,34 @@ const ProductForm = ({
     setForm({ ...form, careInstructions: form.careInstructions.filter((_, i) => i !== index) });
   };
 
+  const handleMaterialToggle = (mat: "Gold" | "Rose Gold") => {
+    setForm(prev => {
+      const exists = prev.materials.includes(mat);
+      let updated: string[];
+      if (exists) {
+        if (prev.materials.length === 1) {
+          // If only 1 selected, switch to the other option so at least one is selected
+          const other = mat === "Gold" ? "Rose Gold" : "Gold";
+          updated = [other];
+        } else {
+          updated = prev.materials.filter(m => m !== mat);
+        }
+      } else {
+        updated = [...prev.materials, mat];
+      }
+
+      const matString = updated.includes("Gold") && updated.includes("Rose Gold")
+        ? "Gold, Rose Gold"
+        : (updated[0] || "Gold");
+
+      return {
+        ...prev,
+        materials: updated,
+        material: matString
+      };
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -507,9 +648,31 @@ const ProductForm = ({
       return;
     }
 
-    if (!form.price || parseFloat(form.price) <= 0) {
-      toast({ title: "Error", description: "Valid selling price is required", variant: "destructive" });
-      return;
+    const isCouple = isCoupleRingCategory(form.category, form.name, product?.coupleRing) ||
+      (parseFloat(form.womenPrice) > 0 || parseFloat(form.menPrice) > 0);
+
+    if (isCouple) {
+      if (!form.womenPrice || parseFloat(form.womenPrice) <= 0) {
+        toast({ title: "Error", description: "Valid Women Ring Price is required", variant: "destructive" });
+        return;
+      }
+      if (!form.womenWeight || parseFloat(form.womenWeight) <= 0) {
+        toast({ title: "Error", description: "Valid Women Ring Weight is required", variant: "destructive" });
+        return;
+      }
+      if (!form.menPrice || parseFloat(form.menPrice) <= 0) {
+        toast({ title: "Error", description: "Valid Men Ring Price is required", variant: "destructive" });
+        return;
+      }
+      if (!form.menWeight || parseFloat(form.menWeight) <= 0) {
+        toast({ title: "Error", description: "Valid Men Ring Weight is required", variant: "destructive" });
+        return;
+      }
+    } else {
+      if (!form.price || parseFloat(form.price) <= 0) {
+        toast({ title: "Error", description: "Valid selling price is required", variant: "destructive" });
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -522,13 +685,34 @@ const ProductForm = ({
       if (img.url) keptImages.push(img.url);
     });
 
+    const savedMaterial = form.materials.includes("Gold") && form.materials.includes("Rose Gold")
+      ? "Gold, Rose Gold"
+      : (form.materials[0] || form.material || "Gold");
+
+    const totalPrice = isCouple
+      ? (parseFloat(form.womenPrice) || 0) + (parseFloat(form.menPrice) || 0)
+      : (parseFloat(form.price) || 0);
+
+    const totalWeight = isCouple
+      ? (parseFloat(form.womenWeight) || 0) + (parseFloat(form.menWeight) || 0)
+      : (parseFloat(form.weight) || 0);
+
+    const coupleRingData = isCouple ? {
+      womenPrice: parseFloat(form.womenPrice) || 0,
+      womenWeight: parseFloat(form.womenWeight) || 0,
+      menPrice: parseFloat(form.menPrice) || 0,
+      menWeight: parseFloat(form.menWeight) || 0,
+    } : undefined;
+
     const submitData = {
       ...form,
-      price: parseFloat(form.price) || 0,
+      material: savedMaterial,
+      price: totalPrice,
       purchasePrice: parseFloat(form.purchasePrice) || 0,
       gst: form.gst,
       isAvailableForOrder: form.isAvailableForOrder,
-      weight: parseFloat(form.weight) || 0,
+      weight: totalWeight,
+      coupleRing: coupleRingData,
       brand: "JewelsKart Original",
       imageFile: imageFile,
       galleryFiles: galleryFiles,
@@ -696,41 +880,135 @@ const ProductForm = ({
           Gold & Weight Details
         </h3>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Weight (grams)</Label>
-            <Input
-              className="h-11 rounded-xl w-full"
-              value={form.weight}
-              onChange={e => setForm({ ...form, weight: e.target.value })}
-              placeholder="e.g., 12g"
-            />
+        {isCoupleRingCategory(form.category) ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Women Ring Weight */}
+              <div className="p-4 rounded-xl border border-pink-200/80 dark:border-pink-900/40 bg-pink-50/30 dark:bg-pink-950/20 space-y-2">
+                <div className="flex items-center gap-2 font-semibold text-sm text-pink-700 dark:text-pink-300">
+                  <Sparkles className="h-4 w-4" />
+                  <span>Women</span>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-foreground">Women Ring Weight (grams) *</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    className="h-11 rounded-xl w-full bg-background"
+                    value={form.womenWeight}
+                    onChange={e => setForm({ ...form, womenWeight: e.target.value })}
+                    placeholder="e.g., 2.35"
+                  />
+                </div>
+              </div>
+
+              {/* Men Ring Weight */}
+              <div className="p-4 rounded-xl border border-blue-200/80 dark:border-blue-900/40 bg-blue-50/30 dark:bg-blue-950/20 space-y-2">
+                <div className="flex items-center gap-2 font-semibold text-sm text-blue-700 dark:text-blue-300">
+                  <Sparkles className="h-4 w-4" />
+                  <span>Men</span>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-foreground">Men Ring Weight (grams) *</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    className="h-11 rounded-xl w-full bg-background"
+                    value={form.menWeight}
+                    onChange={e => setForm({ ...form, menWeight: e.target.value })}
+                    placeholder="e.g., 3.10"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Purity</Label>
+              <Select value={form.purity} onValueChange={v => setForm({ ...form, purity: v as any })}>
+                <SelectTrigger className="h-11 rounded-xl w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {purityOptions.map(p => (
+                    <SelectItem key={p} value={p}>{p} Gold</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>Purity</Label>
-            <Select value={form.purity} onValueChange={v => setForm({ ...form, purity: v as any })}>
-              <SelectTrigger className="h-11 rounded-xl w-full"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {purityOptions.map(p => (
-                  <SelectItem key={p} value={p}>{p} Gold</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Weight (grams)</Label>
+              <Input
+                className="h-11 rounded-xl w-full"
+                value={form.weight}
+                onChange={e => setForm({ ...form, weight: e.target.value })}
+                placeholder="e.g., 12g"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Purity</Label>
+              <Select value={form.purity} onValueChange={v => setForm({ ...form, purity: v as any })}>
+                <SelectTrigger className="h-11 rounded-xl w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {purityOptions.map(p => (
+                    <SelectItem key={p} value={p}>{p} Gold</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="space-y-2">
-          <Label>Material Type</Label>
-          <Select value={form.material} onValueChange={v => setForm({ ...form, material: v })}>
-            <SelectTrigger className="h-11 rounded-xl w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {materialOptions.map(m => (
-                <SelectItem key={m} value={m}>{m}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label className="text-sm font-medium">Material Type</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => handleMaterialToggle("Gold")}
+              className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all text-left ${form.materials.includes("Gold")
+                ? "border-amber-500 bg-amber-500/10 text-amber-900 dark:text-amber-300 font-semibold shadow-sm ring-1 ring-amber-500/30"
+                : "border-border/60 hover:border-border bg-background hover:bg-muted/30 text-muted-foreground"
+                }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-amber-300 to-amber-500 border border-amber-600 shadow-sm inline-block" />
+                <span className="text-sm font-medium">Gold</span>
+              </div>
+              <div
+                className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${form.materials.includes("Gold")
+                  ? "bg-amber-500 border-amber-500 text-white"
+                  : "border-muted-foreground/30 bg-background"
+                  }`}
+              >
+                {form.materials.includes("Gold") && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleMaterialToggle("Rose Gold")}
+              className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all text-left ${form.materials.includes("Rose Gold")
+                ? "border-rose-400 bg-rose-500/10 text-rose-900 dark:text-rose-300 font-semibold shadow-sm ring-1 ring-rose-400/30"
+                : "border-border/60 hover:border-border bg-background hover:bg-muted/30 text-muted-foreground"
+                }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-rose-300 to-rose-400 border border-rose-500 shadow-sm inline-block" />
+                <span className="text-sm font-medium">Rose Gold</span>
+              </div>
+              <div
+                className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${form.materials.includes("Rose Gold")
+                  ? "bg-rose-500 border-rose-500 text-white"
+                  : "border-muted-foreground/30 bg-background"
+                  }`}
+              >
+                {form.materials.includes("Rose Gold") && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+              </div>
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Select Gold, Rose Gold, or both for this product.
+          </p>
         </div>
       </div>
 
@@ -741,58 +1019,161 @@ const ProductForm = ({
           Pricing (Manual Entry)
         </h3>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Selling Price (₹) * <span className="text-xs text-muted-foreground">(GST Exclusive — GST added on top)</span></Label>
-            <Input
-              type="number"
-              className="h-11 rounded-xl w-full"
-              value={form.price}
-              onChange={e => setForm({ ...form, price: e.target.value })}
-              placeholder="Enter selling price"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Purchase Price (₹)</Label>
-            <Input
-              type="number"
-              className="h-11 rounded-xl w-full"
-              value={form.purchasePrice}
-              onChange={e => setForm({ ...form, purchasePrice: e.target.value })}
-              placeholder="Enter purchase price"
-            />
-          </div>
-        </div>
+        {isCoupleRingCategory(form.category) ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Women Ring Price */}
+              <div className="p-4 rounded-xl border border-pink-200/80 dark:border-pink-900/40 bg-pink-50/30 dark:bg-pink-950/20 space-y-2">
+                <div className="flex items-center gap-2 font-semibold text-sm text-pink-700 dark:text-pink-300">
+                  <IndianRupee className="h-4 w-4" />
+                  <span>Women</span>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-foreground">Women Ring Price (₹) *</Label>
+                  <Input
+                    type="number"
+                    className="h-11 rounded-xl w-full bg-background"
+                    value={form.womenPrice}
+                    onChange={e => setForm({ ...form, womenPrice: e.target.value })}
+                    placeholder="e.g., 12500"
+                  />
+                </div>
+              </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>GST (%)</Label>
-            <Select
-              value={form.gst.toString()}
-              onValueChange={v => setForm({ ...form, gst: parseInt(v) })}
-            >
-              <SelectTrigger className="h-11 rounded-xl w-full">
-                <SelectValue placeholder="Select GST rate" />
-              </SelectTrigger>
-              <SelectContent>
-                {gstOptions.map(opt => (
-                  <SelectItem key={opt.value} value={opt.value.toString()}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {form.price && (
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">GST Breakdown (Preview)</Label>
-              <div className="h-11 rounded-xl border bg-muted/30 px-3 flex flex-col justify-center text-sm">
-                <span className="text-muted-foreground">Base Price: ₹{parseFloat(form.price || "0").toFixed(2)}</span>
-                <span className="text-primary font-medium">GST ({form.gst}%): ₹{(parseFloat(form.price || "0") * form.gst / 100).toFixed(2)}</span>
+              {/* Men Ring Price */}
+              <div className="p-4 rounded-xl border border-blue-200/80 dark:border-blue-900/40 bg-blue-50/30 dark:bg-blue-950/20 space-y-2">
+                <div className="flex items-center gap-2 font-semibold text-sm text-blue-700 dark:text-blue-300">
+                  <IndianRupee className="h-4 w-4" />
+                  <span>Men</span>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-foreground">Men Ring Price (₹) *</Label>
+                  <Input
+                    type="number"
+                    className="h-11 rounded-xl w-full bg-background"
+                    value={form.menPrice}
+                    onChange={e => setForm({ ...form, menPrice: e.target.value })}
+                    placeholder="e.g., 14500"
+                  />
+                </div>
               </div>
             </div>
-          )}
-        </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Purchase Price (₹)</Label>
+                <Input
+                  type="number"
+                  className="h-11 rounded-xl w-full"
+                  value={form.purchasePrice}
+                  onChange={e => setForm({ ...form, purchasePrice: e.target.value })}
+                  placeholder="Enter purchase price"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>GST (%)</Label>
+                <Select
+                  value={form.gst.toString()}
+                  onValueChange={v => setForm({ ...form, gst: parseInt(v) })}
+                >
+                  <SelectTrigger className="h-11 rounded-xl w-full">
+                    <SelectValue placeholder="Select GST rate" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {gstOptions.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value.toString()}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {((parseFloat(form.womenPrice) || 0) > 0 || (parseFloat(form.menPrice) || 0) > 0) && (
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Combined Price & GST Breakdown (Preview)</Label>
+                <div className="p-3.5 rounded-xl border bg-muted/30 text-sm space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Women Ring Price:</span>
+                    <span className="font-medium">₹{(parseFloat(form.womenPrice || "0")).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Men Ring Price:</span>
+                    <span className="font-medium">₹{(parseFloat(form.menPrice || "0")).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-border/60 pt-1.5 font-semibold">
+                    <span>Total Selling Price (Base):</span>
+                    <span className="text-primary">
+                      ₹{((parseFloat(form.womenPrice || "0")) + (parseFloat(form.menPrice || "0"))).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>GST ({form.gst}%):</span>
+                    <span className="text-primary font-medium">
+                      ₹{(((parseFloat(form.womenPrice || "0") + parseFloat(form.menPrice || "0")) * form.gst) / 100).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Selling Price (₹) * <span className="text-xs text-muted-foreground">(GST Exclusive — GST added on top)</span></Label>
+                <Input
+                  type="number"
+                  className="h-11 rounded-xl w-full"
+                  value={form.price}
+                  onChange={e => setForm({ ...form, price: e.target.value })}
+                  placeholder="Enter selling price"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Purchase Price (₹)</Label>
+                <Input
+                  type="number"
+                  className="h-11 rounded-xl w-full"
+                  value={form.purchasePrice}
+                  onChange={e => setForm({ ...form, purchasePrice: e.target.value })}
+                  placeholder="Enter purchase price"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>GST (%)</Label>
+                <Select
+                  value={form.gst.toString()}
+                  onValueChange={v => setForm({ ...form, gst: parseInt(v) })}
+                >
+                  <SelectTrigger className="h-11 rounded-xl w-full">
+                    <SelectValue placeholder="Select GST rate" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {gstOptions.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value.toString()}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.price && (
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">GST Breakdown (Preview)</Label>
+                  <div className="h-11 rounded-xl border bg-muted/30 px-3 flex flex-col justify-center text-sm">
+                    <span className="text-muted-foreground">Base Price: ₹{parseFloat(form.price || "0").toFixed(2)}</span>
+                    <span className="text-primary font-medium">GST ({form.gst}%): ₹{(parseFloat(form.price || "0") * form.gst / 100).toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Ring Size Section (Only visible for Ring products) */}
@@ -846,11 +1227,10 @@ const ProductForm = ({
                   key={size}
                   type="button"
                   onClick={() => handleRingSizeToggle(size)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                    form.ringSizes.includes(size)
-                      ? "bg-primary text-white shadow-md scale-105"
-                      : "bg-muted hover:bg-muted/80 text-foreground border"
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${form.ringSizes.includes(size)
+                    ? "bg-primary text-white shadow-md scale-105"
+                    : "bg-muted hover:bg-muted/80 text-foreground border"
+                    }`}
                 >
                   {size}
                 </button>
@@ -888,6 +1268,7 @@ const ProductForm = ({
         </div>
       )}
 
+      {/* Specifications Section */}
       {/* Specifications Section */}
       <div className="space-y-4 border-t pt-4">
         <h3 className="font-semibold text-lg flex items-center gap-2">
@@ -953,29 +1334,121 @@ const ProductForm = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Stone Type</Label>
-            <Select value={form.stoneType} onValueChange={v => setForm({ ...form, stoneType: v })}>
-              <SelectTrigger className="h-11 rounded-xl w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {stoneTypeOptions.map(s => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {/* ✅ NAYA STONE TYPE SECTION */}
+        <div className="space-y-4 mt-4 border-t pt-4">
+          <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-2">
+              <Label className="text-base font-semibold flex items-center gap-2">
+                <span>💎 Stone Type</span>
+                <span className="text-xs text-muted-foreground font-normal">(Select stone configuration)</span>
+              </Label>
+              <Select
+                value={form.stoneType}
+                onValueChange={v => {
+                  setForm({
+                    ...form,
+                    stoneType: v,
+                    // Reset weights when changing type
+                    diamondWeight: v === "diamond" || v === "both" ? form.diamondWeight : "",
+                    semiPreciousWeight: v === "semi_precious" || v === "both" ? form.semiPreciousWeight : "",
+                  })
+                }}
+              >
+                <SelectTrigger className="h-11 rounded-xl w-full bg-background">
+                  <SelectValue placeholder="Select stone type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stoneTypeOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {form.stoneType === "none" && "No stones in this product"}
+                {form.stoneType === "diamond" && "Only diamond stones will be added"}
+                {form.stoneType === "semi_precious" && "Only semi-precious stones will be added"}
+                {form.stoneType === "both" && "Both diamond and semi-precious stones will be added"}
+              </p>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>Stone Weight (carats)</Label>
-            <Input
-              className="h-11 rounded-xl w-full"
-              value={form.stoneWeight}
-              onChange={e => setForm({ ...form, stoneWeight: e.target.value })}
-              placeholder="e.g., 0.5 ct"
-            />
-          </div>
+
+          {/* 🔹 Diamond Weight Field - Shows for "diamond" or "both" */}
+          {(form.stoneType === "diamond" || form.stoneType === "both") && (
+            <div className="space-y-2 mt-2">
+              <Label className="flex items-center gap-2">
+                <span>💎 Diamond Weight (carats)</span>
+                <span className="text-xs text-red-500">*</span>
+                {form.stoneType === "both" && (
+                  <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs">
+                    Required
+                  </Badge>
+                )}
+              </Label>
+              <Input
+                className="h-11 rounded-xl w-full border-blue-200 focus:border-blue-500 focus:ring-blue-500/20"
+                value={form.diamondWeight}
+                onChange={e => setForm({ ...form, diamondWeight: e.target.value })}
+                placeholder="e.g., 0.50"
+                type="number"
+                step="0.01"
+                min="0"
+              />
+              <p className="text-xs text-muted-foreground">Total diamond weight in carats</p>
+            </div>
+          )}
+
+          {/* 🔹 Semi Precious Weight Field - Shows for "semi_precious" or "both" */}
+          {(form.stoneType === "semi_precious" || form.stoneType === "both") && (
+            <div className="space-y-2 mt-2">
+              <Label className="flex items-center gap-2">
+                <span>💠 Semi Precious Weight (carats)</span>
+                <span className="text-xs text-red-500">*</span>
+                {form.stoneType === "both" && (
+                  <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 text-xs">
+                    Required
+                  </Badge>
+                )}
+              </Label>
+              <Input
+                className="h-11 rounded-xl w-full border-purple-200 focus:border-purple-500 focus:ring-purple-500/20"
+                value={form.semiPreciousWeight}
+                onChange={e => setForm({ ...form, semiPreciousWeight: e.target.value })}
+                placeholder="e.g., 1.20"
+                type="number"
+                step="0.01"
+                min="0"
+              />
+              <p className="text-xs text-muted-foreground">Total semi-precious stone weight in carats</p>
+            </div>
+          )}
+
+          {/* 🔹 Summary when Both is selected */}
+          {form.stoneType === "both" && (
+            <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl border border-blue-200/50 dark:border-blue-800/30">
+              <p className="text-sm font-semibold mb-2 flex items-center gap-2">
+                <span>📊</span> Stone Weight Summary
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white/50 dark:bg-black/20 p-3 rounded-lg border border-blue-200/50">
+                  <p className="text-xs text-muted-foreground">💎 Diamond</p>
+                  <p className="font-bold text-blue-600">
+                    {form.diamondWeight || 0} ct
+                  </p>
+                </div>
+                <div className="bg-white/50 dark:bg-black/20 p-3 rounded-lg border border-purple-200/50">
+                  <p className="text-xs text-muted-foreground">💠 Semi Precious</p>
+                  <p className="font-bold text-purple-600">
+                    {form.semiPreciousWeight || 0} ct
+                  </p>
+                </div>
+              </div>
+              <div className="mt-2 text-xs text-muted-foreground text-center border-t border-border/50 pt-2">
+                Total Stone Weight: {(parseFloat(form.diamondWeight || "0") + parseFloat(form.semiPreciousWeight || "0")).toFixed(2)} ct
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1554,24 +2027,49 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
                 <div className="border rounded-lg p-4 bg-background">
                   <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                     <Gem className="w-5 h-5 text-primary" />
-                    Gold Details
+                    Gold & Weight Details
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Weight</p>
-                      <p className="font-semibold text-lg">{goldWeight}g</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Purity</p>
-                      <p className="font-semibold text-lg">{goldPurity}</p>
-                    </div>
-                    {pricePerGram > 0 && (
-                      <div className="col-span-2">
-                        <p className="text-xs text-muted-foreground">Price per Gram</p>
-                        <p className="font-semibold text-lg text-primary">₹{pricePerGram.toLocaleString()}</p>
+                  {isCoupleRingCategory(product.category) || product.coupleRing ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-3 bg-pink-50/60 dark:bg-pink-950/20 border border-pink-200/80 rounded-lg">
+                          <p className="text-xs font-semibold text-pink-700 mb-1">Women's Ring Weight</p>
+                          <p className="font-bold text-lg text-foreground">{product.coupleRing?.womenWeight || 0}g</p>
+                        </div>
+                        <div className="p-3 bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/80 rounded-lg">
+                          <p className="text-xs font-semibold text-blue-700 mb-1">Men's Ring Weight</p>
+                          <p className="font-bold text-lg text-foreground">{product.coupleRing?.menWeight || 0}g</p>
+                        </div>
                       </div>
-                    )}
-                  </div>
+                      <div className="grid grid-cols-2 gap-4 pt-1">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Total Combined Weight</p>
+                          <p className="font-semibold text-base">{goldWeight}g</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Purity</p>
+                          <p className="font-semibold text-base">{goldPurity}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Weight</p>
+                        <p className="font-semibold text-lg">{goldWeight}g</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Purity</p>
+                        <p className="font-semibold text-lg">{goldPurity}</p>
+                      </div>
+                      {pricePerGram > 0 && (
+                        <div className="col-span-2">
+                          <p className="text-xs text-muted-foreground">Price per Gram</p>
+                          <p className="font-semibold text-lg text-primary">₹{pricePerGram.toLocaleString()}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="border rounded-lg p-4 bg-background">
@@ -1671,21 +2169,62 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
                     <p className="text-xs text-muted-foreground">Gender</p>
                     <p className="font-medium">{product.specifications?.gender || "Women"}</p>
                   </div>
-                  {product.specifications?.stoneType && (
-                    <>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Stone Type</p>
-                        <p className="font-medium">{product.specifications.stoneType}</p>
-                      </div>
-                      {product.specifications.stoneWeight && product.specifications.stoneWeight > 0 && (
-                        <div>
-                          <p className="text-xs text-muted-foreground">Stone Weight</p>
-                          <p className="font-medium">{product.specifications.stoneWeight} ct</p>
-                        </div>
-                      )}
-                    </>
-                  )}
+                  <div>
+                    <p className="text-xs text-muted-foreground">Stone Type</p>
+                    <p className="font-medium">
+                      {product.specifications?.stoneType === "diamond" && "💎 Diamond"}
+                      {product.specifications?.stoneType === "semi_precious" && "💠 Semi Precious"}
+                      {product.specifications?.stoneType === "both" && "💎 + 💠 Both"}
+                      {(!product.specifications?.stoneType || product.specifications?.stoneType === "none") && "No Stone"}
+                    </p>
+                  </div>
                 </div>
+
+                {/* ✅ Stone Weight Display Section */}
+                {(product.specifications?.stoneType === "diamond" || product.specifications?.stoneType === "both") && (
+                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200/50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <span>💎</span> Diamond Weight
+                        </p>
+                        <p className="font-bold text-lg text-blue-600">
+                          {product.specifications?.diamondWeight || product.specifications?.stoneWeight || 0} carats
+                        </p>
+                      </div>
+                      {product.specifications?.stoneType === "both" && (
+                        <Badge className="bg-blue-100 text-blue-700">Both</Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {(product.specifications?.stoneType === "semi_precious" || product.specifications?.stoneType === "both") && (
+                  <div className="mt-3 p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200/50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <span>💠</span> Semi Precious Weight
+                        </p>
+                        <p className="font-bold text-lg text-purple-600">
+                          {product.specifications?.semiPreciousWeight || 0} carats
+                        </p>
+                      </div>
+                      {product.specifications?.stoneType === "both" && (
+                        <Badge className="bg-purple-100 text-purple-700">Both</Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ✅ Both Summary */}
+                {product.specifications?.stoneType === "both" && (
+                  <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-border">
+                    <p className="text-xs text-muted-foreground text-center">
+                      Total Stone Weight: {(product.specifications?.diamondWeight || 0) + (product.specifications?.semiPreciousWeight || 0)} ct
+                    </p>
+                  </div>
+                )}
               </motion.div>
             )}
 
@@ -1701,6 +2240,20 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
                   <IndianRupee className="w-5 h-5 text-primary" />
                   Pricing Information
                 </h3>
+                {(isCoupleRingCategory(product.category) || product.coupleRing) && (
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="p-3 bg-pink-50/50 dark:bg-pink-950/20 border border-pink-200/60 dark:border-pink-900/40 rounded-lg">
+                      <p className="text-xs font-semibold text-pink-700 dark:text-pink-300 mb-1">Women's Ring Price</p>
+                      <p className="text-base font-bold text-foreground">₹{(product.coupleRing?.womenPrice || 0).toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Weight: {product.coupleRing?.womenWeight || 0}g</p>
+                    </div>
+                    <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 rounded-lg">
+                      <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">Men's Ring Price</p>
+                      <p className="text-base font-bold text-foreground">₹{(product.coupleRing?.menPrice || 0).toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Weight: {product.coupleRing?.menWeight || 0}g</p>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center p-3 bg-primary/5 rounded-lg">
                     <p className="text-xs text-muted-foreground mb-1">Selling Price (Excl. GST)</p>
@@ -1890,6 +2443,7 @@ export default function ProductsPage() {
         tags: productData.tags,
         status: productData.status,
         isAvailableForOrder: productData.isAvailableForOrder,
+        coupleRing: productData.coupleRing,
         goldDetails: productData.weight ? {
           weight: productData.weight,
           purity: productData.purity,
@@ -1902,8 +2456,10 @@ export default function ProductsPage() {
           certification: productData.certification,
           ringSizes: productData.ringSizes || [],
           gender: productData.gender,
-          stoneType: productData.stoneType,
-          stoneWeight: productData.stoneWeight,
+          stoneType: productData.stoneType || "none",
+          stoneWeight: productData.stoneWeight || 0,
+          diamondWeight: productData.diamondWeight || 0,
+          semiPreciousWeight: productData.semiPreciousWeight || 0,
         },
         careInstructions: {
           instructions: productData.careInstructions || DEFAULT_CARE_INSTRUCTIONS,
@@ -2518,6 +3074,7 @@ export default function ProductsPage() {
       status: formData.status,
       isAvailableForOrder: formData.isAvailableForOrder,
       sku: formData.sku,
+      coupleRing: formData.coupleRing,
       keptImages: formData.keptImages || [],
       existingMainImage: formData.existingMainImage,
       existingGalleryImages: formData.existingGalleryImages || [],
@@ -2772,6 +3329,7 @@ export default function ProductsPage() {
       </div>
 
       {/* Products List */}
+      {/* Products List */}
       <div className="space-y-4">
         {filtered.map((product) => {
           const imageUrl = getProductImage(product);
@@ -2782,6 +3340,8 @@ export default function ProductsPage() {
             <Card key={productId} className="border-border/20 overflow-hidden hover:border-primary/20 transition-all duration-300">
               <CardContent className="p-0">
                 <div className="flex flex-wrap items-center justify-between p-5 gap-4">
+
+                  {/* Left Section - Image + Name */}
                   <div className="flex items-center gap-4 min-w-[200px]">
                     <div className="h-14 w-14 rounded-xl bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
                       {hasValidImage ? (
@@ -2797,6 +3357,7 @@ export default function ProductsPage() {
                         <Gem className="h-6 w-6 text-primary" />
                       )}
                     </div>
+
                     <div>
                       <p className="font-bold text-foreground text-lg">{product.name}</p>
                       <div className="flex items-center gap-2 text-sm mt-1 flex-wrap">
@@ -2809,14 +3370,40 @@ export default function ProductsPage() {
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5 font-mono">SKU: {product.sku}</p>
+
+                      {/* Stone Weight Display */}
+                      <div className="flex items-center gap-2 flex-wrap mt-1">
+                        {product.specifications?.stoneType === "diamond" && product.specifications?.diamondWeight && (
+                          <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                            💎 {product.specifications.diamondWeight}ct
+                          </span>
+                        )}
+                        {product.specifications?.stoneType === "semi_precious" && product.specifications?.semiPreciousWeight && (
+                          <span className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full">
+                            💠 {product.specifications.semiPreciousWeight}ct
+                          </span>
+                        )}
+                        {product.specifications?.stoneType === "both" && (
+                          <>
+                            <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                              💎 {product.specifications.diamondWeight || 0}ct
+                            </span>
+                            <span className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full">
+                              💠 {product.specifications.semiPreciousWeight || 0}ct
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
 
+                  {/* Price Section */}
                   <div className="text-center min-w-[100px]">
                     <p className="text-xs text-muted-foreground mb-1">Price</p>
                     <p className="font-bold text-primary text-lg">₹{(product.price || 0).toLocaleString()}</p>
                   </div>
 
+                  {/* Status Section */}
                   <div className="min-w-[120px]">
                     <p className="text-xs text-muted-foreground mb-1">Status</p>
                     <Badge className={`${statusColors[product.status]} border rounded-full px-3 py-1.5`}>
@@ -2824,6 +3411,7 @@ export default function ProductsPage() {
                     </Badge>
                   </div>
 
+                  {/* Action Buttons */}
                   <div className="flex items-center gap-1">
                     <Button
                       variant="ghost"
@@ -2855,20 +3443,23 @@ export default function ProductsPage() {
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                </div>
+
+                </div>  {/* This div closes the main flex container */}
               </CardContent>
             </Card>
           );
         })}
       </div>
 
-      {filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-          <Package className="w-12 h-12 text-primary/30 mb-4" />
-          <p className="mb-2">No products found</p>
-          <p className="text-sm">Try adjusting your search or add a new product</p>
-        </div>
-      )}
+      {
+        filtered.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+            <Package className="w-12 h-12 text-primary/30 mb-4" />
+            <p className="mb-2">No products found</p>
+            <p className="text-sm">Try adjusting your search or add a new product</p>
+          </div>
+        )
+      }
 
       {/* View Product Dialog */}
       <ProductViewDialog product={viewProduct} onClose={() => setViewProduct(null)} />
@@ -2882,6 +3473,7 @@ export default function ProductsPage() {
           </DialogHeader>
           {editProduct && (
             <ProductForm
+              key={editProduct._id || editProduct.id}
               product={editProduct}
               onSubmit={handleEditProduct}
               onCancel={() => setEditProduct(null)}
@@ -2892,6 +3484,6 @@ export default function ProductsPage() {
           )}
         </DialogContent>
       </Dialog>
-    </motion.div>
+    </motion.div >
   );
 }

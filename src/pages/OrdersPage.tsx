@@ -501,6 +501,8 @@ export default function OrdersPage() {
           const itemGst = item.gstAmount ?? Number(((itemTotal * gstRate) / 100).toFixed(2));
           return {
             ...item,
+            size: item.size || item.selectedSize || '',
+            material: item.material || item.metal || item.selectedMaterial || 'Gold',
             gstPercent: gstRate,
             gstAmount: itemGst,
             skuCode: item.skuCode || item.sku || item.productSku,
@@ -514,9 +516,9 @@ export default function OrdersPage() {
         discount: o.discount || 0,
         shippingCharge: 1200,
         total: (() => {
-            const subtotal = o.items?.reduce((acc: number, i: any) => acc + ((i.price || 0) * (i.quantity || 1)), 0) || 0;
-            const tax = o.items?.reduce((acc: number, i: any) => acc + (((i.price || 0) * (i.quantity || 1) * (i.gstPercent || 3)) / 100), 0) || 0;
-            return subtotal + tax + 1200;
+          const subtotal = o.items?.reduce((acc: number, i: any) => acc + ((i.price || 0) * (i.quantity || 1)), 0) || 0;
+          const tax = o.items?.reduce((acc: number, i: any) => acc + (((i.price || 0) * (i.quantity || 1) * (i.gstPercent || 3)) / 100), 0) || 0;
+          return subtotal + tax + 1200;
         })(),
         status: o.orderStatus || o.status || "Confirmed",
         paymentStatus: o.paymentStatus || "SUCCESS",
@@ -1319,16 +1321,17 @@ export default function OrdersPage() {
                 <h3 className="text-lg font-semibold mb-3">Products</h3>
                 <div className="space-y-3">
                   {selectedOrder.items?.map((item, idx) => {
-                    // Get size from item
+                    // Get size and metal from item
                     const productSize = item.size || item.selectedSize || '';
+                    const productMetal = item.material || item.metal || item.selectedMaterial || '';
 
                     return (
                       <div key={idx} className="border rounded-lg p-4">
                         <div className="flex gap-4">
                           <div className="flex-shrink-0">
-                            {item.image ? (
+                            {item.image || item.productImage ? (
                               <img
-                                src={item.image}
+                                src={item.image || item.productImage}
                                 alt={item.name || item.productName || 'Product'}
                                 className="w-20 h-20 object-cover rounded-lg"
                                 onError={(e) => {
@@ -1345,16 +1348,41 @@ export default function OrdersPage() {
                             <p className="font-semibold">{item.name || item.productName || 'Product'}</p>
                             <p className="text-sm text-muted-foreground">SKU: {item.skuCode || item.sku || item.productSku || "N/A"}</p>
 
-                            {/* Size Badge */}
-                            {productSize && productSize !== '' ? (
-                              <span className="inline-flex items-center gap-1 text-xs bg-green-100 px-2 py-0.5 rounded-full text-green-700 font-medium mt-1">
-                                Size: {productSize}
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-500 mt-1">
-                                📏 Size: Standard
-                              </span>
-                            )}
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                              {/* Ring Option Badge */}
+                              {(item.ringOption || (item as any).selectedRingOption) && (
+                                <span className="inline-flex items-center gap-1 text-xs bg-purple-100 px-2.5 py-0.5 rounded-full text-purple-800 font-bold border border-purple-200">
+                                  💍 Ring: {item.ringOption || (item as any).selectedRingOption}
+                                </span>
+                              )}
+
+                              {/* Size Badge */}
+                              {productSize && productSize !== '' ? (
+                                <span className="inline-flex items-center gap-1 text-xs bg-green-100 px-2 py-0.5 rounded-full text-green-700 font-medium">
+                                  Size: {productSize}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-500">
+                                  📏 Size: Standard
+                                </span>
+                              )}
+
+                              {/* Metal Badge */}
+                              {(() => {
+                                const metal = productMetal || 'Gold';
+                                const isRose = metal.toLowerCase().includes('rose');
+                                return (
+                                  <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-semibold border ${isRose
+                                      ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                      : 'bg-amber-50 text-amber-800 border-amber-200'
+                                    }`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${isRose ? 'bg-rose-500' : 'bg-amber-500'
+                                      }`} />
+                                    Metal: {metal}
+                                  </span>
+                                );
+                              })()}
+                            </div>
 
                             <p className="text-sm mt-2">
                               Qty: {item.quantity} × ₹{item.price?.toLocaleString()} = ₹{(item.price * item.quantity).toLocaleString()} <span className="text-xs text-muted-foreground">(+ {item.gstPercent || 3}% GST extra)</span>

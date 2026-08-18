@@ -27,6 +27,12 @@ export interface Product {
   images: string[];
   tags?: string[];
   status?: string;
+  coupleRing?: {
+    womenPrice?: number;
+    womenWeight?: number;
+    menPrice?: number;
+    menWeight?: number;
+  };
   goldDetails?: {
     weight: number;
     purity: "9K" | "10K" | "14K" | "18K" | "21K" | "22K" | "23K" | "24K";
@@ -362,6 +368,7 @@ export function JewelleryCMSProvider({ children }: { children: ReactNode }) {
         images: p.images || [],
         tags: p.tags,
         status: p.status,
+        coupleRing: p.coupleRing,
         goldDetails: p.goldDetails,
         specifications: p.specifications,
         careInstructions: p.careInstructions,
@@ -521,7 +528,11 @@ export function JewelleryCMSProvider({ children }: { children: ReactNode }) {
           customerEmail: o.customerEmail || o.userId?.email || "",
           customerPhone: o.customerPhone || "",
           customerAddress: o.shippingAddress || {},
-          items: o.items || [],
+          items: (o.items || []).map((item: any) => ({
+            ...item,
+            material: item.material || item.metal || item.selectedMaterial || 'Gold',
+            size: item.size || item.selectedSize || ''
+          })),
           subtotal: o.subtotal,
           tax: o.tax,
           discount: o.discount,
