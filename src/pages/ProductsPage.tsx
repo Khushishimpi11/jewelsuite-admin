@@ -40,8 +40,18 @@ interface ProductSpecifications {
   occasion?: string;
   stoneType?: string;  // "none" | "diamond" | "semi_precious" | "both"
   stoneWeight?: number;
-  diamondWeight?: number;
-  semiPreciousWeight?: number;
+  diamond?: string;
+  diamondWeight?: number | string;
+  semiPreciousStone?: string;
+  semiPreciousWeight?: number | string;
+  womenDiamond?: string;
+  womenDiamondWeight?: number | string;
+  womenSemiPreciousStone?: string;
+  womenSemiPreciousWeight?: number | string;
+  menDiamond?: string;
+  menDiamondWeight?: number | string;
+  menSemiPreciousStone?: string;
+  menSemiPreciousWeight?: number | string;
   warranty?: string;
 }
 
@@ -89,6 +99,14 @@ interface CoupleRingDetails {
   womenWeight?: number;
   menPrice?: number;
   menWeight?: number;
+  womenDiamond?: string;
+  womenDiamondWeight?: number | string;
+  womenSemiPreciousStone?: string;
+  womenSemiPreciousWeight?: number | string;
+  menDiamond?: string;
+  menDiamondWeight?: number | string;
+  menSemiPreciousStone?: string;
+  menSemiPreciousWeight?: number | string;
 }
 
 interface Product {
@@ -252,12 +270,17 @@ const parseMaterials = (val?: string | string[]): string[] => {
 
 // Helper to check if a category is Couple Ring
 const isCoupleRingCategory = (cat?: string | Category, prodName?: string, coupleRing?: any): boolean => {
-  if (coupleRing && (coupleRing.womenPrice || coupleRing.menPrice)) return true;
+  if (coupleRing && (
+    (coupleRing.womenPrice !== undefined && coupleRing.womenPrice !== "" && Number(coupleRing.womenPrice) > 0) ||
+    (coupleRing.menPrice !== undefined && coupleRing.menPrice !== "" && Number(coupleRing.menPrice) > 0) ||
+    (coupleRing.womenWeight !== undefined && coupleRing.womenWeight !== "" && Number(coupleRing.womenWeight) > 0) ||
+    (coupleRing.menWeight !== undefined && coupleRing.menWeight !== "" && Number(coupleRing.menWeight) > 0)
+  )) return true;
   const name = typeof cat === "string" ? cat : (cat?.name || "");
   const lower = name.trim().toLowerCase().replace(/[-_]/g, " ");
   if (lower === "couple ring" || lower === "couple rings" || lower.includes("couple ring") || lower.includes("couple")) return true;
   const pName = (prodName || "").toLowerCase().trim();
-  if (pName.includes("couple ring") || pName.includes("couple set")) return true;
+  if (pName.includes("couple ring") || pName.includes("couple set") || pName.includes("couple")) return true;
   return false;
 };
 
@@ -329,6 +352,81 @@ const ProductForm = ({
     return cat.name || "";
   };
 
+  const getInitialCoupleRing = (p?: any) => {
+    const cr = p?.coupleRing || p?.specifications?.coupleRing || {};
+    return {
+      womenPrice: (cr.womenPrice !== undefined && cr.womenPrice !== null && cr.womenPrice !== "" ? cr.womenPrice : (p?.womenPrice ?? "")).toString(),
+      womenWeight: (cr.womenWeight !== undefined && cr.womenWeight !== null && cr.womenWeight !== "" ? cr.womenWeight : (p?.womenWeight ?? "")).toString(),
+      menPrice: (cr.menPrice !== undefined && cr.menPrice !== null && cr.menPrice !== "" ? cr.menPrice : (p?.menPrice ?? "")).toString(),
+      menWeight: (cr.menWeight !== undefined && cr.menWeight !== null && cr.menWeight !== "" ? cr.menWeight : (p?.menWeight ?? "")).toString(),
+    };
+  };
+
+  const getInitialStoneData = (p?: any) => {
+    const specs = p?.specifications || {};
+    const cr = p?.coupleRing || p?.specifications?.coupleRing || {};
+    const oldType = specs.stoneType || "none";
+
+    const hasD = Boolean(
+      specs.diamond ||
+      (specs.diamondWeight !== undefined && specs.diamondWeight !== null && String(specs.diamondWeight).trim() !== '' && String(specs.diamondWeight) !== '0') ||
+      oldType === "diamond" ||
+      oldType === "both"
+    );
+    const hasSP = Boolean(
+      specs.semiPreciousStone ||
+      (specs.semiPreciousWeight !== undefined && specs.semiPreciousWeight !== null && String(specs.semiPreciousWeight).trim() !== '' && String(specs.semiPreciousWeight) !== '0') ||
+      oldType === "semi_precious" ||
+      oldType === "both"
+    );
+
+    const wDiamond = cr.womenDiamond || specs.womenDiamond || p?.womenDiamond || "";
+    const wDiamondWeight = (cr.womenDiamondWeight !== undefined && cr.womenDiamondWeight !== null ? cr.womenDiamondWeight : (specs.womenDiamondWeight ?? p?.womenDiamondWeight ?? "")).toString();
+    const hasWD = Boolean(wDiamond || (wDiamondWeight && wDiamondWeight.trim() !== '' && wDiamondWeight !== '0'));
+
+    const wSemi = cr.womenSemiPreciousStone || specs.womenSemiPreciousStone || p?.womenSemiPreciousStone || "";
+    const wSemiWeight = (cr.womenSemiPreciousWeight !== undefined && cr.womenSemiPreciousWeight !== null ? cr.womenSemiPreciousWeight : (specs.womenSemiPreciousWeight ?? p?.womenSemiPreciousWeight ?? "")).toString();
+    const hasWSP = Boolean(wSemi || (wSemiWeight && wSemiWeight.trim() !== '' && wSemiWeight !== '0'));
+
+    const mDiamond = cr.menDiamond || specs.menDiamond || p?.menDiamond || "";
+    const mDiamondWeight = (cr.menDiamondWeight !== undefined && cr.menDiamondWeight !== null ? cr.menDiamondWeight : (specs.menDiamondWeight ?? p?.menDiamondWeight ?? "")).toString();
+    const hasMD = Boolean(mDiamond || (mDiamondWeight && mDiamondWeight.trim() !== '' && mDiamondWeight !== '0'));
+
+    const mSemi = cr.menSemiPreciousStone || specs.menSemiPreciousStone || p?.menSemiPreciousStone || "";
+    const mSemiWeight = (cr.menSemiPreciousWeight !== undefined && cr.menSemiPreciousWeight !== null ? cr.menSemiPreciousWeight : (specs.menSemiPreciousWeight ?? p?.menSemiPreciousWeight ?? "")).toString();
+    const hasMSP = Boolean(mSemi || (mSemiWeight && mSemiWeight.trim() !== '' && mSemiWeight !== '0'));
+
+    return {
+      hasDiamond: hasD,
+      diamond: specs.diamond || (hasD ? "Diamond" : ""),
+      diamondWeight: specs.diamondWeight !== undefined && specs.diamondWeight !== null && String(specs.diamondWeight).trim() !== ''
+        ? specs.diamondWeight.toString()
+        : (oldType === "diamond" || oldType === "both" ? (specs.stoneWeight?.toString() || "") : ""),
+      hasSemiPrecious: hasSP,
+      semiPreciousStone: specs.semiPreciousStone || (hasSP ? "Semi Precious Stone" : ""),
+      semiPreciousWeight: specs.semiPreciousWeight !== undefined && specs.semiPreciousWeight !== null && String(specs.semiPreciousWeight).trim() !== ''
+        ? specs.semiPreciousWeight.toString()
+        : (oldType === "semi_precious" || oldType === "both" ? (specs.stoneWeight?.toString() || "") : ""),
+
+      hasWomenDiamond: hasWD,
+      womenDiamond: wDiamond || (hasWD ? "Diamond" : ""),
+      womenDiamondWeight: wDiamondWeight,
+      hasWomenSemiPrecious: hasWSP,
+      womenSemiPreciousStone: wSemi || (hasWSP ? "Semi Precious Stone" : ""),
+      womenSemiPreciousWeight: wSemiWeight,
+
+      hasMenDiamond: hasMD,
+      menDiamond: mDiamond || (hasMD ? "Diamond" : ""),
+      menDiamondWeight: mDiamondWeight,
+      hasMenSemiPrecious: hasMSP,
+      menSemiPreciousStone: mSemi || (hasMSP ? "Semi Precious Stone" : ""),
+      menSemiPreciousWeight: mSemiWeight,
+    };
+  };
+
+  const initialCouple = getInitialCoupleRing(product);
+  const initialStones = getInitialStoneData(product);
+
   const [form, setForm] = useState({
     name: product?.name || "",
     price: product?.price?.toString() || "",
@@ -344,10 +442,10 @@ const ProductForm = ({
     tags: product?.tags || [] as string[],
     status: product?.status || "Draft",
     sku: product?.sku || "",
-    womenPrice: product?.coupleRing?.womenPrice !== undefined ? product.coupleRing.womenPrice.toString() : "",
-    womenWeight: product?.coupleRing?.womenWeight !== undefined ? product.coupleRing.womenWeight.toString() : "",
-    menPrice: product?.coupleRing?.menPrice !== undefined ? product.coupleRing.menPrice.toString() : "",
-    menWeight: product?.coupleRing?.menWeight !== undefined ? product.coupleRing.menWeight.toString() : "",
+    womenPrice: initialCouple.womenPrice,
+    womenWeight: initialCouple.womenWeight,
+    menPrice: initialCouple.menPrice,
+    menWeight: initialCouple.menWeight,
     material: product?.specifications?.material || "Gold",
     materials: parseMaterials(product?.specifications?.material),
     ringSizes: Array.isArray(product?.specifications?.ringSizes) ? product.specifications.ringSizes : [],
@@ -355,10 +453,28 @@ const ProductForm = ({
     hallmark: product?.specifications?.hallmark || "BIS Hallmarked",
     certification: product?.specifications?.certification || "IGI Certified",
     gender: product?.specifications?.gender || "Women",
+    // Standard stone fields
+    hasDiamond: initialStones.hasDiamond,
+    diamond: initialStones.diamond,
+    diamondWeight: initialStones.diamondWeight,
+    hasSemiPrecious: initialStones.hasSemiPrecious,
+    semiPreciousStone: initialStones.semiPreciousStone,
+    semiPreciousWeight: initialStones.semiPreciousWeight,
+    // Couple ring stone fields
+    hasWomenDiamond: initialStones.hasWomenDiamond,
+    womenDiamond: initialStones.womenDiamond,
+    womenDiamondWeight: initialStones.womenDiamondWeight,
+    hasWomenSemiPrecious: initialStones.hasWomenSemiPrecious,
+    womenSemiPreciousStone: initialStones.womenSemiPreciousStone,
+    womenSemiPreciousWeight: initialStones.womenSemiPreciousWeight,
+    hasMenDiamond: initialStones.hasMenDiamond,
+    menDiamond: initialStones.menDiamond,
+    menDiamondWeight: initialStones.menDiamondWeight,
+    hasMenSemiPrecious: initialStones.hasMenSemiPrecious,
+    menSemiPreciousStone: initialStones.menSemiPreciousStone,
+    menSemiPreciousWeight: initialStones.menSemiPreciousWeight,
     stoneType: product?.specifications?.stoneType || "none",
     stoneWeight: product?.specifications?.stoneWeight?.toString() || "",
-    diamondWeight: product?.specifications?.diamondWeight?.toString() || "",
-    semiPreciousWeight: product?.specifications?.semiPreciousWeight?.toString() || "",
     careInstructions: product?.careInstructions?.instructions || DEFAULT_CARE_INSTRUCTIONS,
     delivery: product?.additionalInfo?.delivery || "3-5 Days",
     returns: product?.additionalInfo?.returns || "7 Days Return Policy",
@@ -405,6 +521,8 @@ const ProductForm = ({
 
   useEffect(() => {
     if (product) {
+      const cr = getInitialCoupleRing(product);
+      const stones = getInitialStoneData(product);
       setForm({
         name: product.name || "",
         price: product.price?.toString() || "",
@@ -420,10 +538,10 @@ const ProductForm = ({
         tags: product.tags || [] as string[],
         status: product.status || "Draft",
         sku: product.sku || "",
-        womenPrice: product.coupleRing?.womenPrice !== undefined && product.coupleRing?.womenPrice !== null ? product.coupleRing.womenPrice.toString() : "",
-        womenWeight: product.coupleRing?.womenWeight !== undefined && product.coupleRing?.womenWeight !== null ? product.coupleRing.womenWeight.toString() : "",
-        menPrice: product.coupleRing?.menPrice !== undefined && product.coupleRing?.menPrice !== null ? product.coupleRing.menPrice.toString() : "",
-        menWeight: product.coupleRing?.menWeight !== undefined && product.coupleRing?.menWeight !== null ? product.coupleRing.menWeight.toString() : "",
+        womenPrice: cr.womenPrice,
+        womenWeight: cr.womenWeight,
+        menPrice: cr.menPrice,
+        menWeight: cr.menWeight,
         material: product.specifications?.material || "Gold",
         materials: parseMaterials(product.specifications?.material),
         ringSizes: Array.isArray(product.specifications?.ringSizes) ? product.specifications.ringSizes : [],
@@ -431,15 +549,28 @@ const ProductForm = ({
         hallmark: product.specifications?.hallmark || "BIS Hallmarked",
         certification: product.specifications?.certification || "IGI Certified",
         gender: product.specifications?.gender || "Women",
-
-        // ✅ FIX 1: Stone Type ko "none" default rakhein
+        // Standard stone fields
+        hasDiamond: stones.hasDiamond,
+        diamond: stones.diamond,
+        diamondWeight: stones.diamondWeight,
+        hasSemiPrecious: stones.hasSemiPrecious,
+        semiPreciousStone: stones.semiPreciousStone,
+        semiPreciousWeight: stones.semiPreciousWeight,
+        // Couple ring stone fields
+        hasWomenDiamond: stones.hasWomenDiamond,
+        womenDiamond: stones.womenDiamond,
+        womenDiamondWeight: stones.womenDiamondWeight,
+        hasWomenSemiPrecious: stones.hasWomenSemiPrecious,
+        womenSemiPreciousStone: stones.womenSemiPreciousStone,
+        womenSemiPreciousWeight: stones.womenSemiPreciousWeight,
+        hasMenDiamond: stones.hasMenDiamond,
+        menDiamond: stones.menDiamond,
+        menDiamondWeight: stones.menDiamondWeight,
+        hasMenSemiPrecious: stones.hasMenSemiPrecious,
+        menSemiPreciousStone: stones.menSemiPreciousStone,
+        menSemiPreciousWeight: stones.menSemiPreciousWeight,
         stoneType: product.specifications?.stoneType || "none",
-
-        // ✅ FIX 2: Stone Weight fields add karein
         stoneWeight: product.specifications?.stoneWeight?.toString() || "",
-        diamondWeight: product.specifications?.diamondWeight?.toString() || "",
-        semiPreciousWeight: product.specifications?.semiPreciousWeight?.toString() || "",
-
         careInstructions: product.careInstructions?.instructions || DEFAULT_CARE_INSTRUCTIONS,
         delivery: product.additionalInfo?.delivery || "3-5 Days",
         returns: product.additionalInfo?.returns || "7 Days Return Policy",
@@ -702,6 +833,14 @@ const ProductForm = ({
       womenWeight: parseFloat(form.womenWeight) || 0,
       menPrice: parseFloat(form.menPrice) || 0,
       menWeight: parseFloat(form.menWeight) || 0,
+      womenDiamond: form.hasWomenDiamond ? (form.womenDiamond || "Diamond") : "",
+      womenDiamondWeight: form.hasWomenDiamond ? (form.womenDiamondWeight || "") : "",
+      womenSemiPreciousStone: form.hasWomenSemiPrecious ? (form.womenSemiPreciousStone || "Semi Precious Stone") : "",
+      womenSemiPreciousWeight: form.hasWomenSemiPrecious ? (form.womenSemiPreciousWeight || "") : "",
+      menDiamond: form.hasMenDiamond ? (form.menDiamond || "Diamond") : "",
+      menDiamondWeight: form.hasMenDiamond ? (form.menDiamondWeight || "") : "",
+      menSemiPreciousStone: form.hasMenSemiPrecious ? (form.menSemiPreciousStone || "Semi Precious Stone") : "",
+      menSemiPreciousWeight: form.hasMenSemiPrecious ? (form.menSemiPreciousWeight || "") : "",
     } : undefined;
 
     const submitData = {
@@ -718,6 +857,20 @@ const ProductForm = ({
       galleryFiles: galleryFiles,
       videoFile: videoFile,
       stoneWeight: parseFloat(form.stoneWeight) || 0,
+      // Standard stone fields
+      diamond: !isCouple && form.hasDiamond ? (form.diamond || "Diamond") : "",
+      diamondWeight: !isCouple && form.hasDiamond ? (form.diamondWeight || "") : "",
+      semiPreciousStone: !isCouple && form.hasSemiPrecious ? (form.semiPreciousStone || "Semi Precious Stone") : "",
+      semiPreciousWeight: !isCouple && form.hasSemiPrecious ? (form.semiPreciousWeight || "") : "",
+      // Couple ring stone fields
+      womenDiamond: isCouple && form.hasWomenDiamond ? (form.womenDiamond || "Diamond") : "",
+      womenDiamondWeight: isCouple && form.hasWomenDiamond ? (form.womenDiamondWeight || "") : "",
+      womenSemiPreciousStone: isCouple && form.hasWomenSemiPrecious ? (form.womenSemiPreciousStone || "Semi Precious Stone") : "",
+      womenSemiPreciousWeight: isCouple && form.hasWomenSemiPrecious ? (form.womenSemiPreciousWeight || "") : "",
+      menDiamond: isCouple && form.hasMenDiamond ? (form.menDiamond || "Diamond") : "",
+      menDiamondWeight: isCouple && form.hasMenDiamond ? (form.menDiamondWeight || "") : "",
+      menSemiPreciousStone: isCouple && form.hasMenSemiPrecious ? (form.menSemiPreciousStone || "Semi Precious Stone") : "",
+      menSemiPreciousWeight: isCouple && form.hasMenSemiPrecious ? (form.menSemiPreciousWeight || "") : "",
       reviewRating: parseFloat(form.reviewRating) || 0,
       reviewCount: parseInt(form.reviewCount) || 0,
       keptImages: keptImages,
@@ -893,7 +1046,7 @@ const ProductForm = ({
                   <Label className="text-xs font-medium text-foreground">Women Ring Weight (grams) *</Label>
                   <Input
                     type="number"
-                    step="0.01"
+                    step="0.001"
                     className="h-11 rounded-xl w-full bg-background"
                     value={form.womenWeight}
                     onChange={e => setForm({ ...form, womenWeight: e.target.value })}
@@ -912,7 +1065,7 @@ const ProductForm = ({
                   <Label className="text-xs font-medium text-foreground">Men Ring Weight (grams) *</Label>
                   <Input
                     type="number"
-                    step="0.01"
+                    step="0.001"
                     className="h-11 rounded-xl w-full bg-background"
                     value={form.menWeight}
                     onChange={e => setForm({ ...form, menWeight: e.target.value })}
@@ -1334,120 +1487,338 @@ const ProductForm = ({
           </div>
         </div>
 
-        {/* ✅ NAYA STONE TYPE SECTION */}
+        {/* ✅ STONE SECTION - Separate for Couple Rings vs Regular Products */}
         <div className="space-y-4 mt-4 border-t pt-4">
-          <div className="grid grid-cols-1 gap-4">
-            <div className="space-y-2">
-              <Label className="text-base font-semibold flex items-center gap-2">
-                <span>💎 Stone Type</span>
-                <span className="text-xs text-muted-foreground font-normal">(Select stone configuration)</span>
-              </Label>
-              <Select
-                value={form.stoneType}
-                onValueChange={v => {
-                  setForm({
-                    ...form,
-                    stoneType: v,
-                    // Reset weights when changing type
-                    diamondWeight: v === "diamond" || v === "both" ? form.diamondWeight : "",
-                    semiPreciousWeight: v === "semi_precious" || v === "both" ? form.semiPreciousWeight : "",
-                  })
-                }}
-              >
-                <SelectTrigger className="h-11 rounded-xl w-full bg-background">
-                  <SelectValue placeholder="Select stone type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {stoneTypeOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                {form.stoneType === "none" && "No stones in this product"}
-                {form.stoneType === "diamond" && "Only diamond stones will be added"}
-                {form.stoneType === "semi_precious" && "Only semi-precious stones will be added"}
-                {form.stoneType === "both" && "Both diamond and semi-precious stones will be added"}
-              </p>
-            </div>
-          </div>
+          <Label className="text-base font-semibold flex items-center gap-2">
+            <span>💎 Stone Details</span>
+            <span className="text-xs text-muted-foreground font-normal">(Select any that apply)</span>
+          </Label>
 
-          {/* 🔹 Diamond Weight Field - Shows for "diamond" or "both" */}
-          {(form.stoneType === "diamond" || form.stoneType === "both") && (
-            <div className="space-y-2 mt-2">
-              <Label className="flex items-center gap-2">
-                <span>💎 Diamond Weight (carats)</span>
-                <span className="text-xs text-red-500">*</span>
-                {form.stoneType === "both" && (
-                  <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs">
-                    Required
-                  </Badge>
-                )}
-              </Label>
-              <Input
-                className="h-11 rounded-xl w-full border-blue-200 focus:border-blue-500 focus:ring-blue-500/20"
-                value={form.diamondWeight}
-                onChange={e => setForm({ ...form, diamondWeight: e.target.value })}
-                placeholder="e.g., 0.50"
-                type="number"
-                step="0.01"
-                min="0"
-              />
-              <p className="text-xs text-muted-foreground">Total diamond weight in carats</p>
-            </div>
-          )}
-
-          {/* 🔹 Semi Precious Weight Field - Shows for "semi_precious" or "both" */}
-          {(form.stoneType === "semi_precious" || form.stoneType === "both") && (
-            <div className="space-y-2 mt-2">
-              <Label className="flex items-center gap-2">
-                <span>💠 Semi Precious Weight (carats)</span>
-                <span className="text-xs text-red-500">*</span>
-                {form.stoneType === "both" && (
-                  <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 text-xs">
-                    Required
-                  </Badge>
-                )}
-              </Label>
-              <Input
-                className="h-11 rounded-xl w-full border-purple-200 focus:border-purple-500 focus:ring-purple-500/20"
-                value={form.semiPreciousWeight}
-                onChange={e => setForm({ ...form, semiPreciousWeight: e.target.value })}
-                placeholder="e.g., 1.20"
-                type="number"
-                step="0.01"
-                min="0"
-              />
-              <p className="text-xs text-muted-foreground">Total semi-precious stone weight in carats</p>
-            </div>
-          )}
-
-          {/* 🔹 Summary when Both is selected */}
-          {form.stoneType === "both" && (
-            <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl border border-blue-200/50 dark:border-blue-800/30">
-              <p className="text-sm font-semibold mb-2 flex items-center gap-2">
-                <span>📊</span> Stone Weight Summary
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white/50 dark:bg-black/20 p-3 rounded-lg border border-blue-200/50">
-                  <p className="text-xs text-muted-foreground">💎 Diamond</p>
-                  <p className="font-bold text-blue-600">
-                    {form.diamondWeight || 0} ct
-                  </p>
+          {isCoupleRingCategory(form.category) ? (
+            <div className="space-y-4">
+              {/* 👩 WOMEN STONES */}
+              <div className="p-4 rounded-xl border border-pink-200/80 dark:border-pink-900/40 bg-pink-50/20 dark:bg-pink-950/10 space-y-3">
+                <div className="flex items-center gap-2 font-semibold text-sm text-pink-700 dark:text-pink-300">
+                  <Sparkles className="h-4 w-4" />
+                  <span>Women – Stone Details</span>
                 </div>
-                <div className="bg-white/50 dark:bg-black/20 p-3 rounded-lg border border-purple-200/50">
-                  <p className="text-xs text-muted-foreground">💠 Semi Precious</p>
-                  <p className="font-bold text-purple-600">
-                    {form.semiPreciousWeight || 0} ct
-                  </p>
+
+                {/* Women Diamond */}
+                <div className={`rounded-xl border-2 transition-all ${form.hasWomenDiamond
+                  ? 'border-blue-400 bg-blue-50/40 dark:bg-blue-950/20'
+                  : 'border-border/50 bg-background'}`}>
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-3 p-3 text-left"
+                    onClick={() => setForm({
+                      ...form,
+                      hasWomenDiamond: !form.hasWomenDiamond,
+                      womenDiamond: !form.hasWomenDiamond ? (form.womenDiamond || "Diamond") : "",
+                      womenDiamondWeight: !form.hasWomenDiamond ? form.womenDiamondWeight : ""
+                    })}
+                  >
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${form.hasWomenDiamond ? 'bg-blue-500 border-blue-500' : 'border-muted-foreground/40'}`}>
+                      {form.hasWomenDiamond && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">💎 Women – Diamond</p>
+                      <p className="text-xs text-muted-foreground">Check to add diamond for women's ring</p>
+                    </div>
+                  </button>
+
+                  {form.hasWomenDiamond && (
+                    <div className="px-4 pb-4 space-y-3 border-t border-blue-200/60">
+                      <div className="mt-3 space-y-1.5">
+                        <Label className="text-xs font-medium">Diamond Type / Name</Label>
+                        <Input
+                          className="h-10 rounded-xl w-full border-blue-200 focus:border-blue-500"
+                          value={form.womenDiamond}
+                          onChange={e => setForm({ ...form, womenDiamond: e.target.value })}
+                          placeholder="e.g., Diamond, VVS1 Diamond, etc."
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">Diamond Weight (carats)</Label>
+                        <Input
+                          className="h-10 rounded-xl w-full border-blue-200 focus:border-blue-500"
+                          value={form.womenDiamondWeight}
+                          onChange={e => setForm({ ...form, womenDiamondWeight: e.target.value })}
+                          placeholder="e.g., 0.06"
+                          type="number"
+                          step="0.001"
+                          min="0"
+                        />
+                        <p className="text-xs text-muted-foreground">Diamond weight in carats for women's ring</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Women Semi Precious Stone */}
+                <div className={`rounded-xl border-2 transition-all ${form.hasWomenSemiPrecious
+                  ? 'border-purple-400 bg-purple-50/40 dark:bg-purple-950/20'
+                  : 'border-border/50 bg-background'}`}>
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-3 p-3 text-left"
+                    onClick={() => setForm({
+                      ...form,
+                      hasWomenSemiPrecious: !form.hasWomenSemiPrecious,
+                      womenSemiPreciousStone: !form.hasWomenSemiPrecious ? (form.womenSemiPreciousStone || "Semi Precious Stone") : "",
+                      womenSemiPreciousWeight: !form.hasWomenSemiPrecious ? form.womenSemiPreciousWeight : ""
+                    })}
+                  >
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${form.hasWomenSemiPrecious ? 'bg-purple-500 border-purple-500' : 'border-muted-foreground/40'}`}>
+                      {form.hasWomenSemiPrecious && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">💠 Women – Semi Precious Stone</p>
+                      <p className="text-xs text-muted-foreground">Check to add semi-precious stone for women's ring</p>
+                    </div>
+                  </button>
+
+                  {form.hasWomenSemiPrecious && (
+                    <div className="px-4 pb-4 space-y-3 border-t border-purple-200/60">
+                      <div className="mt-3 space-y-1.5">
+                        <Label className="text-xs font-medium">Stone Type / Name</Label>
+                        <Input
+                          className="h-10 rounded-xl w-full border-purple-200 focus:border-purple-500"
+                          value={form.womenSemiPreciousStone}
+                          onChange={e => setForm({ ...form, womenSemiPreciousStone: e.target.value })}
+                          placeholder="e.g., Semi Precious Stone, Ruby, Emerald, etc."
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">Semi Precious Stone Weight (carats)</Label>
+                        <Input
+                          className="h-10 rounded-xl w-full border-purple-200 focus:border-purple-500"
+                          value={form.womenSemiPreciousWeight}
+                          onChange={e => setForm({ ...form, womenSemiPreciousWeight: e.target.value })}
+                          placeholder="e.g., 4.00"
+                          type="number"
+                          step="0.001"
+                          min="0"
+                        />
+                        <p className="text-xs text-muted-foreground">Semi-precious stone weight in carats for women's ring</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="mt-2 text-xs text-muted-foreground text-center border-t border-border/50 pt-2">
-                Total Stone Weight: {(parseFloat(form.diamondWeight || "0") + parseFloat(form.semiPreciousWeight || "0")).toFixed(2)} ct
+
+              {/* 👨 MEN STONES */}
+              <div className="p-4 rounded-xl border border-blue-200/80 dark:border-blue-900/40 bg-blue-50/20 dark:bg-blue-950/10 space-y-3">
+                <div className="flex items-center gap-2 font-semibold text-sm text-blue-700 dark:text-blue-300">
+                  <Sparkles className="h-4 w-4" />
+                  <span>Men – Stone Details</span>
+                </div>
+
+                {/* Men Diamond */}
+                <div className={`rounded-xl border-2 transition-all ${form.hasMenDiamond
+                  ? 'border-blue-400 bg-blue-50/40 dark:bg-blue-950/20'
+                  : 'border-border/50 bg-background'}`}>
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-3 p-3 text-left"
+                    onClick={() => setForm({
+                      ...form,
+                      hasMenDiamond: !form.hasMenDiamond,
+                      menDiamond: !form.hasMenDiamond ? (form.menDiamond || "Diamond") : "",
+                      menDiamondWeight: !form.hasMenDiamond ? form.menDiamondWeight : ""
+                    })}
+                  >
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${form.hasMenDiamond ? 'bg-blue-500 border-blue-500' : 'border-muted-foreground/40'}`}>
+                      {form.hasMenDiamond && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">💎 Men – Diamond</p>
+                      <p className="text-xs text-muted-foreground">Check to add diamond for men's ring</p>
+                    </div>
+                  </button>
+
+                  {form.hasMenDiamond && (
+                    <div className="px-4 pb-4 space-y-3 border-t border-blue-200/60">
+                      <div className="mt-3 space-y-1.5">
+                        <Label className="text-xs font-medium">Diamond Type / Name</Label>
+                        <Input
+                          className="h-10 rounded-xl w-full border-blue-200 focus:border-blue-500"
+                          value={form.menDiamond}
+                          onChange={e => setForm({ ...form, menDiamond: e.target.value })}
+                          placeholder="e.g., Diamond, VVS1 Diamond, etc."
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">Diamond Weight (carats)</Label>
+                        <Input
+                          className="h-10 rounded-xl w-full border-blue-200 focus:border-blue-500"
+                          value={form.menDiamondWeight}
+                          onChange={e => setForm({ ...form, menDiamondWeight: e.target.value })}
+                          placeholder="e.g., 0.10"
+                          type="number"
+                          step="0.001"
+                          min="0"
+                        />
+                        <p className="text-xs text-muted-foreground">Diamond weight in carats for men's ring</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Men Semi Precious Stone */}
+                <div className={`rounded-xl border-2 transition-all ${form.hasMenSemiPrecious
+                  ? 'border-purple-400 bg-purple-50/40 dark:bg-purple-950/20'
+                  : 'border-border/50 bg-background'}`}>
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-3 p-3 text-left"
+                    onClick={() => setForm({
+                      ...form,
+                      hasMenSemiPrecious: !form.hasMenSemiPrecious,
+                      menSemiPreciousStone: !form.hasMenSemiPrecious ? (form.menSemiPreciousStone || "Semi Precious Stone") : "",
+                      menSemiPreciousWeight: !form.hasMenSemiPrecious ? form.menSemiPreciousWeight : ""
+                    })}
+                  >
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${form.hasMenSemiPrecious ? 'bg-purple-500 border-purple-500' : 'border-muted-foreground/40'}`}>
+                      {form.hasMenSemiPrecious && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">💠 Men – Semi Precious Stone</p>
+                      <p className="text-xs text-muted-foreground">Check to add semi-precious stone for men's ring</p>
+                    </div>
+                  </button>
+
+                  {form.hasMenSemiPrecious && (
+                    <div className="px-4 pb-4 space-y-3 border-t border-purple-200/60">
+                      <div className="mt-3 space-y-1.5">
+                        <Label className="text-xs font-medium">Stone Type / Name</Label>
+                        <Input
+                          className="h-10 rounded-xl w-full border-purple-200 focus:border-purple-500"
+                          value={form.menSemiPreciousStone}
+                          onChange={e => setForm({ ...form, menSemiPreciousStone: e.target.value })}
+                          placeholder="e.g., Semi Precious Stone, Sapphire, etc."
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">Semi Precious Stone Weight (carats)</Label>
+                        <Input
+                          className="h-10 rounded-xl w-full border-purple-200 focus:border-purple-500"
+                          value={form.menSemiPreciousWeight}
+                          onChange={e => setForm({ ...form, menSemiPreciousWeight: e.target.value })}
+                          placeholder="e.g., 3.00"
+                          type="number"
+                          step="0.001"
+                          min="0"
+                        />
+                        <p className="text-xs text-muted-foreground">Semi-precious stone weight in carats for men's ring</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
+          ) : (
+            <>
+              {/* Diamond Section */}
+              <div className={`rounded-xl border-2 transition-all ${form.hasDiamond
+                ? 'border-blue-400 bg-blue-50/40 dark:bg-blue-950/20'
+                : 'border-border/50 bg-muted/10'}`}>
+                <button
+                  type="button"
+                  className="w-full flex items-center gap-3 p-3 text-left"
+                  onClick={() => setForm({ ...form, hasDiamond: !form.hasDiamond, diamond: !form.hasDiamond ? (form.diamond || "Diamond") : "", diamondWeight: !form.hasDiamond ? form.diamondWeight : "" })}
+                >
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${form.hasDiamond ? 'bg-blue-500 border-blue-500' : 'border-muted-foreground/40'}`}>
+                    {form.hasDiamond && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">💎 Diamond</p>
+                    <p className="text-xs text-muted-foreground">Check to add diamond stone details</p>
+                  </div>
+                </button>
+
+                {form.hasDiamond && (
+                  <div className="px-4 pb-4 space-y-3 border-t border-blue-200/60">
+                    <div className="mt-3 space-y-1.5">
+                      <Label className="text-xs font-medium">Diamond Type / Name</Label>
+                      <Input
+                        className="h-10 rounded-xl w-full border-blue-200 focus:border-blue-500"
+                        value={form.diamond}
+                        onChange={e => setForm({ ...form, diamond: e.target.value })}
+                        placeholder="e.g., Diamond, VVS1 Diamond, etc."
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Diamond Weight (carats)</Label>
+                      <Input
+                        className="h-10 rounded-xl w-full border-blue-200 focus:border-blue-500"
+                        value={form.diamondWeight}
+                        onChange={e => setForm({ ...form, diamondWeight: e.target.value })}
+                        placeholder="e.g., 0.50"
+                        type="number"
+                        step="0.001"
+                        min="0"
+                      />
+                      <p className="text-xs text-muted-foreground">Total diamond weight in carats</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Semi Precious Stone Section */}
+              <div className={`rounded-xl border-2 transition-all ${form.hasSemiPrecious
+                ? 'border-purple-400 bg-purple-50/40 dark:bg-purple-950/20'
+                : 'border-border/50 bg-muted/10'}`}>
+                <button
+                  type="button"
+                  className="w-full flex items-center gap-3 p-3 text-left"
+                  onClick={() => setForm({ ...form, hasSemiPrecious: !form.hasSemiPrecious, semiPreciousStone: !form.hasSemiPrecious ? (form.semiPreciousStone || "Semi Precious Stone") : "", semiPreciousWeight: !form.hasSemiPrecious ? form.semiPreciousWeight : "" })}
+                >
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${form.hasSemiPrecious ? 'bg-purple-500 border-purple-500' : 'border-muted-foreground/40'}`}>
+                    {form.hasSemiPrecious && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">💠 Semi Precious Stone</p>
+                    <p className="text-xs text-muted-foreground">Check to add semi precious stone details</p>
+                  </div>
+                </button>
+
+                {form.hasSemiPrecious && (
+                  <div className="px-4 pb-4 space-y-3 border-t border-purple-200/60">
+                    <div className="mt-3 space-y-1.5">
+                      <Label className="text-xs font-medium">Stone Type / Name</Label>
+                      <Input
+                        className="h-10 rounded-xl w-full border-purple-200 focus:border-purple-500"
+                        value={form.semiPreciousStone}
+                        onChange={e => setForm({ ...form, semiPreciousStone: e.target.value })}
+                        placeholder="e.g., Ruby, Emerald, Sapphire, etc."
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Semi Precious Stone Weight (carats)</Label>
+                      <Input
+                        className="h-10 rounded-xl w-full border-purple-200 focus:border-purple-500"
+                        value={form.semiPreciousWeight}
+                        onChange={e => setForm({ ...form, semiPreciousWeight: e.target.value })}
+                        placeholder="e.g., 1.20"
+                        type="number"
+                        step="0.001"
+                        min="0"
+                      />
+                      <p className="text-xs text-muted-foreground">Total semi-precious stone weight in carats</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Summary when both are selected */}
+              {form.hasDiamond && form.hasSemiPrecious && (
+                <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl border border-border">
+                  <p className="text-xs text-muted-foreground text-center">
+                    💎 {form.diamond || "Diamond"}: {form.diamondWeight || 0} ct &nbsp;+&nbsp; 💠 {form.semiPreciousStone || "Semi Precious"}: {form.semiPreciousWeight || 0} ct
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -2169,62 +2540,149 @@ const ProductViewDialog = ({ product, onClose }: { product: Product | null; onCl
                     <p className="text-xs text-muted-foreground">Gender</p>
                     <p className="font-medium">{product.specifications?.gender || "Women"}</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Stone Type</p>
-                    <p className="font-medium">
-                      {product.specifications?.stoneType === "diamond" && "💎 Diamond"}
-                      {product.specifications?.stoneType === "semi_precious" && "💠 Semi Precious"}
-                      {product.specifications?.stoneType === "both" && "💎 + 💠 Both"}
-                      {(!product.specifications?.stoneType || product.specifications?.stoneType === "none") && "No Stone"}
-                    </p>
-                  </div>
                 </div>
 
-                {/* ✅ Stone Weight Display Section */}
-                {(product.specifications?.stoneType === "diamond" || product.specifications?.stoneType === "both") && (
-                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200/50">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <span>💎</span> Diamond Weight
-                        </p>
-                        <p className="font-bold text-lg text-blue-600">
-                          {product.specifications?.diamondWeight || product.specifications?.stoneWeight || 0} carats
-                        </p>
-                      </div>
-                      {product.specifications?.stoneType === "both" && (
-                        <Badge className="bg-blue-100 text-blue-700">Both</Badge>
-                      )}
-                    </div>
-                  </div>
-                )}
+                {/* Couple Ring Stone Details (Women & Men separate) */}
+                {(() => {
+                  const isCouple = isCoupleRingCategory(product.category, product.name, product.coupleRing);
+                  if (isCouple) {
+                    const cr = product.coupleRing || {};
+                    const specs = product.specifications || {};
 
-                {(product.specifications?.stoneType === "semi_precious" || product.specifications?.stoneType === "both") && (
-                  <div className="mt-3 p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200/50">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <span>💠</span> Semi Precious Weight
-                        </p>
-                        <p className="font-bold text-lg text-purple-600">
-                          {product.specifications?.semiPreciousWeight || 0} carats
-                        </p>
-                      </div>
-                      {product.specifications?.stoneType === "both" && (
-                        <Badge className="bg-purple-100 text-purple-700">Both</Badge>
-                      )}
-                    </div>
-                  </div>
-                )}
+                    const formatWeight = (w: any) => {
+                      if (w === undefined || w === null) return '';
+                      const str = String(w).trim();
+                      if (!str || str === '0') return '';
+                      return str.toLowerCase().includes('ct') ? str : `${str} ct`;
+                    };
 
-                {/* ✅ Both Summary */}
-                {product.specifications?.stoneType === "both" && (
-                  <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-border">
-                    <p className="text-xs text-muted-foreground text-center">
-                      Total Stone Weight: {(product.specifications?.diamondWeight || 0) + (product.specifications?.semiPreciousWeight || 0)} ct
-                    </p>
-                  </div>
-                )}
+                    const wDiamond = cr.womenDiamond || specs.womenDiamond;
+                    const wDWeight = formatWeight(cr.womenDiamondWeight !== undefined && cr.womenDiamondWeight !== null ? cr.womenDiamondWeight : specs.womenDiamondWeight);
+                    const hasWD = Boolean((wDiamond && wDiamond.trim() !== '' && wDiamond.toLowerCase() !== 'none') || wDWeight);
+
+                    const mDiamond = cr.menDiamond || specs.menDiamond;
+                    const mDWeight = formatWeight(cr.menDiamondWeight !== undefined && cr.menDiamondWeight !== null ? cr.menDiamondWeight : specs.menDiamondWeight);
+                    const hasMD = Boolean((mDiamond && mDiamond.trim() !== '' && mDiamond.toLowerCase() !== 'none') || mDWeight);
+
+                    const wSemi = cr.womenSemiPreciousStone || specs.womenSemiPreciousStone;
+                    const wSWeight = formatWeight(cr.womenSemiPreciousWeight !== undefined && cr.womenSemiPreciousWeight !== null ? cr.womenSemiPreciousWeight : specs.womenSemiPreciousWeight);
+                    const hasWS = Boolean((wSemi && wSemi.trim() !== '' && wSemi.toLowerCase() !== 'none') || wSWeight);
+
+                    const mSemi = cr.menSemiPreciousStone || specs.menSemiPreciousStone;
+                    const mSWeight = formatWeight(cr.menSemiPreciousWeight !== undefined && cr.menSemiPreciousWeight !== null ? cr.menSemiPreciousWeight : specs.menSemiPreciousWeight);
+                    const hasMS = Boolean((mSemi && mSemi.trim() !== '' && mSemi.toLowerCase() !== 'none') || mSWeight);
+
+                    if (!hasWD && !hasMD && !hasWS && !hasMS) return null;
+
+                    return (
+                      <div className="mt-4 pt-4 border-t space-y-3">
+                        <h4 className="text-sm font-semibold text-foreground">Stone Details</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          {/* Row 1: Diamond */}
+                          {(hasWD || hasMD) && (
+                            <>
+                              {hasWD ? (
+                                <div className="p-3 bg-pink-50/50 dark:bg-pink-950/20 border border-pink-200/60 dark:border-pink-900/40 rounded-lg">
+                                  <p className="text-xs font-semibold text-pink-700 dark:text-pink-300">
+                                    {wDiamond && wDiamond.toLowerCase() !== 'diamond' ? `Women Diamond (${wDiamond})` : 'Women Diamond'}
+                                  </p>
+                                  <p className="font-bold text-base text-foreground mt-0.5">{wDWeight || '0 ct'}</p>
+                                </div>
+                              ) : <div />}
+
+                              {hasMD ? (
+                                <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 rounded-lg">
+                                  <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">
+                                    {mDiamond && mDiamond.toLowerCase() !== 'diamond' ? `Men Diamond (${mDiamond})` : 'Men Diamond'}
+                                  </p>
+                                  <p className="font-bold text-base text-foreground mt-0.5">{mDWeight || '0 ct'}</p>
+                                </div>
+                              ) : (hasWD ? <div /> : null)}
+                            </>
+                          )}
+
+                          {/* Row 2: Semi Precious */}
+                          {(hasWS || hasMS) && (
+                            <>
+                              {hasWS ? (
+                                <div className="p-3 bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200/60 dark:border-purple-900/40 rounded-lg">
+                                  <p className="text-xs font-semibold text-purple-700 dark:text-purple-300">
+                                    {wSemi && wSemi.toLowerCase() !== 'semi precious stone' && wSemi.toLowerCase() !== 'semi precious' ? `Women Semi Precious (${wSemi})` : 'Women Semi Precious'}
+                                  </p>
+                                  <p className="font-bold text-base text-foreground mt-0.5">{wSWeight || '0 ct'}</p>
+                                </div>
+                              ) : <div />}
+
+                              {hasMS ? (
+                                <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200/60 dark:border-indigo-900/40 rounded-lg">
+                                  <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                                    {mSemi && mSemi.toLowerCase() !== 'semi precious stone' && mSemi.toLowerCase() !== 'semi precious' ? `Men Semi Precious (${mSemi})` : 'Men Semi Precious'}
+                                  </p>
+                                  <p className="font-bold text-base text-foreground mt-0.5">{mSWeight || '0 ct'}</p>
+                                </div>
+                              ) : (hasWS ? <div /> : null)}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Regular product stone details
+                  const specs = product.specifications || {};
+                  const formatWeight = (w: any) => {
+                    if (w === undefined || w === null) return '';
+                    const str = String(w).trim();
+                    if (!str || str === '0') return '';
+                    return str.toLowerCase().includes('ct') ? str : `${str} ct`;
+                  };
+
+                  const diamondType = specs.diamond;
+                  const diamondWeight = formatWeight(specs.diamondWeight);
+                  const hasDiamond = Boolean((diamondType && diamondType.trim() !== '' && diamondType.toLowerCase() !== 'none') || diamondWeight);
+
+                  const semiStone = specs.semiPreciousStone;
+                  const semiWeight = formatWeight(specs.semiPreciousWeight);
+                  const hasSemi = Boolean((semiStone && semiStone.trim() !== '' && semiStone.toLowerCase() !== 'none') || semiWeight);
+
+                  if (!hasDiamond && !hasSemi) {
+                    if (specs.stoneType && specs.stoneType !== "No Stone" && specs.stoneType !== "none") {
+                      return (
+                        <div className="mt-4 pt-4 border-t">
+                          <p className="text-xs text-muted-foreground">{specs.stoneType}</p>
+                          <p className="font-bold text-base text-foreground mt-0.5">
+                            {specs.stoneWeight && specs.stoneWeight > 0 ? `${specs.stoneWeight} ct` : ''}
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }
+
+                  return (
+                    <div className="mt-4 pt-4 border-t space-y-3">
+                      <h4 className="text-sm font-semibold text-foreground">Stone Details</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        {hasDiamond && (
+                          <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 rounded-lg">
+                            <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">
+                              {diamondType && diamondType.toLowerCase() !== 'diamond' ? `Diamond (${diamondType})` : 'Diamond'}
+                            </p>
+                            <p className="font-bold text-base text-foreground mt-0.5">{diamondWeight || '0 ct'}</p>
+                          </div>
+                        )}
+                        {hasSemi && (
+                          <div className="p-3 bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200/60 dark:border-purple-900/40 rounded-lg">
+                            <p className="text-xs font-semibold text-purple-700 dark:text-purple-300">
+                              {semiStone && semiStone.toLowerCase() !== 'semi precious stone' && semiStone.toLowerCase() !== 'semi precious' ? `Semi Precious (${semiStone})` : 'Semi Precious Stone'}
+                            </p>
+                            <p className="font-bold text-base text-foreground mt-0.5">{semiWeight || '0 ct'}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </motion.div>
             )}
 
@@ -2458,8 +2916,18 @@ export default function ProductsPage() {
           gender: productData.gender,
           stoneType: productData.stoneType || "none",
           stoneWeight: productData.stoneWeight || 0,
-          diamondWeight: productData.diamondWeight || 0,
-          semiPreciousWeight: productData.semiPreciousWeight || 0,
+          diamond: productData.diamond || "",
+          diamondWeight: productData.diamondWeight || "",
+          semiPreciousStone: productData.semiPreciousStone || "",
+          semiPreciousWeight: productData.semiPreciousWeight || "",
+          womenDiamond: productData.womenDiamond || "",
+          womenDiamondWeight: productData.womenDiamondWeight || "",
+          womenSemiPreciousStone: productData.womenSemiPreciousStone || "",
+          womenSemiPreciousWeight: productData.womenSemiPreciousWeight || "",
+          menDiamond: productData.menDiamond || "",
+          menDiamondWeight: productData.menDiamondWeight || "",
+          menSemiPreciousStone: productData.menSemiPreciousStone || "",
+          menSemiPreciousWeight: productData.menSemiPreciousWeight || "",
         },
         careInstructions: {
           instructions: productData.careInstructions || DEFAULT_CARE_INSTRUCTIONS,
@@ -3088,6 +3556,18 @@ export default function ProductsPage() {
         gender: formData.gender,
         stoneType: formData.stoneType,
         stoneWeight: formData.stoneWeight,
+        diamond: formData.diamond || "",
+        diamondWeight: formData.diamondWeight || "",
+        semiPreciousStone: formData.semiPreciousStone || "",
+        semiPreciousWeight: formData.semiPreciousWeight || "",
+        womenDiamond: formData.womenDiamond || "",
+        womenDiamondWeight: formData.womenDiamondWeight || "",
+        womenSemiPreciousStone: formData.womenSemiPreciousStone || "",
+        womenSemiPreciousWeight: formData.womenSemiPreciousWeight || "",
+        menDiamond: formData.menDiamond || "",
+        menDiamondWeight: formData.menDiamondWeight || "",
+        menSemiPreciousStone: formData.menSemiPreciousStone || "",
+        menSemiPreciousWeight: formData.menSemiPreciousWeight || "",
       },
       careInstructions: {
         instructions: formData.careInstructions || DEFAULT_CARE_INSTRUCTIONS,
@@ -3370,30 +3850,6 @@ export default function ProductsPage() {
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5 font-mono">SKU: {product.sku}</p>
-
-                      {/* Stone Weight Display */}
-                      <div className="flex items-center gap-2 flex-wrap mt-1">
-                        {product.specifications?.stoneType === "diamond" && product.specifications?.diamondWeight && (
-                          <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
-                            💎 {product.specifications.diamondWeight}ct
-                          </span>
-                        )}
-                        {product.specifications?.stoneType === "semi_precious" && product.specifications?.semiPreciousWeight && (
-                          <span className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full">
-                            💠 {product.specifications.semiPreciousWeight}ct
-                          </span>
-                        )}
-                        {product.specifications?.stoneType === "both" && (
-                          <>
-                            <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
-                              💎 {product.specifications.diamondWeight || 0}ct
-                            </span>
-                            <span className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full">
-                              💠 {product.specifications.semiPreciousWeight || 0}ct
-                            </span>
-                          </>
-                        )}
-                      </div>
                     </div>
                   </div>
 

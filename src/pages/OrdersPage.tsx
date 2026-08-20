@@ -93,6 +93,40 @@ interface ReturnRequestInfo {
   createdAt: string;
 }
 
+const formatCoupleOrRingSize = (size?: string, ringOption?: string): string => {
+  if (!size || size.trim() === '' || size.trim().toLowerCase() === 'free size') {
+    return 'Standard';
+  }
+  const cleanSize = size.trim();
+
+  // If already formatted with Women: or Men:, return as is
+  if (cleanSize.includes('Women:') || cleanSize.includes('Men:')) {
+    return cleanSize;
+  }
+
+  const rawSizeVal = cleanSize.replace(/^Size\s*/i, '').trim();
+
+  if (ringOption) {
+    const opt = ringOption.toLowerCase();
+    if (opt.includes('women')) {
+      return `Women: Size ${rawSizeVal}`;
+    }
+    if (opt.includes('men')) {
+      return `Men: Size ${rawSizeVal}`;
+    }
+    if (opt.includes('both') || opt.includes('couple')) {
+      if (rawSizeVal.includes(',') || rawSizeVal.includes('/')) {
+        const parts = rawSizeVal.split(/[,/]/).map(p => p.trim().replace(/^Size\s*/i, ''));
+        if (parts.length >= 2) {
+          return `Women: Size ${parts[0]}, Men: Size ${parts[1]}`;
+        }
+      }
+    }
+  }
+
+  return cleanSize;
+};
+
 // ========== PAYMENT STATUS BADGE (Fixed - using span instead of Badge to avoid DOM nesting) ==========
 const PaymentStatusBadge = ({ status }: { status: string }) => {
   const config: Record<string, { bg: string; text: string; icon: any; label: string }> = {
@@ -1323,6 +1357,8 @@ export default function OrdersPage() {
                   {selectedOrder.items?.map((item, idx) => {
                     // Get size and metal from item
                     const productSize = item.size || item.selectedSize || '';
+                    const itemRingOption = item.ringOption || (item as any).selectedRingOption || '';
+                    const displaySize = formatCoupleOrRingSize(productSize, itemRingOption);
                     const productMetal = item.material || item.metal || item.selectedMaterial || '';
 
                     return (
@@ -1349,17 +1385,10 @@ export default function OrdersPage() {
                             <p className="text-sm text-muted-foreground">SKU: {item.skuCode || item.sku || item.productSku || "N/A"}</p>
 
                             <div className="flex flex-wrap items-center gap-2 mt-1">
-                              {/* Ring Option Badge */}
-                              {(item.ringOption || (item as any).selectedRingOption) && (
-                                <span className="inline-flex items-center gap-1 text-xs bg-purple-100 px-2.5 py-0.5 rounded-full text-purple-800 font-bold border border-purple-200">
-                                  💍 Ring: {item.ringOption || (item as any).selectedRingOption}
-                                </span>
-                              )}
-
                               {/* Size Badge */}
-                              {productSize && productSize !== '' ? (
+                              {displaySize && displaySize !== '' && displaySize !== 'Standard' && displaySize !== 'Free Size' ? (
                                 <span className="inline-flex items-center gap-1 text-xs bg-green-100 px-2 py-0.5 rounded-full text-green-700 font-medium">
-                                  Size: {productSize}
+                                  Size: {displaySize}
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-500">

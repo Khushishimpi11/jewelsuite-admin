@@ -381,15 +381,15 @@ const ReturnRequestsPage = () => {
   };
 
   const handleViewDetail = async (req: ReturnRequest) => {
+    const authToken = token || localStorage.getItem("admin_token") || localStorage.getItem("token");
     setSelectedRequest(req);
     // If it's pending, mark it as under review automatically when viewed
     if (req.status === 'pending') {
       try {
         await fetch(`${API_BASE_URL}/returns/admin/${req._id}/under-review`, {
           method: 'PUT',
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${authToken}` }
         });
-        // We can fetch requests in the background to update the list, but no need to wait
         fetchRequests();
       } catch (error) {
         console.error('Error updating status to under review:', error);
@@ -399,16 +399,35 @@ const ReturnRequestsPage = () => {
   
   useEffect(() => {
     fetchRequests();
-  }, []);
+    // Auto-refresh every 15 seconds to catch new incoming customer requests in real-time
+    const interval = setInterval(() => {
+      const authToken = token || localStorage.getItem("admin_token") || localStorage.getItem("token");
+      if (authToken) {
+        fetch(`${API_BASE_URL}/returns/admin/all`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && Array.isArray(data.requests)) {
+              setRequests(data.requests);
+            }
+          })
+          .catch(() => {});
+      }
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [token]);
   
   const handleApprove = async (id: string) => {
+    const authToken = token || localStorage.getItem("admin_token") || localStorage.getItem("token");
     setProcessing(true);
     try {
       const response = await fetch(`${API_BASE_URL}/returns/admin/${id}/approve`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({ adminNote })
       });
@@ -435,13 +454,14 @@ const ReturnRequestsPage = () => {
   };
   
   const handleReject = async (id: string) => {
+    const authToken = token || localStorage.getItem("admin_token") || localStorage.getItem("token");
     setProcessing(true);
     try {
       const response = await fetch(`${API_BASE_URL}/returns/admin/${id}/reject`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({ adminNote })
       });
@@ -468,13 +488,14 @@ const ReturnRequestsPage = () => {
   };
 
   const handleMarkReturnReceived = async (id: string) => {
+    const authToken = token || localStorage.getItem("admin_token") || localStorage.getItem("token");
     setProcessing(true);
     try {
       const response = await fetch(`${API_BASE_URL}/returns/admin/${id}/return-received`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({ returnShippingTracking: returnTracking })
       });
@@ -495,13 +516,14 @@ const ReturnRequestsPage = () => {
   };
 
   const handleShipExchange = async (id: string) => {
+    const authToken = token || localStorage.getItem("admin_token") || localStorage.getItem("token");
     setProcessing(true);
     try {
       const response = await fetch(`${API_BASE_URL}/returns/admin/${id}/ship-exchange`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({ exchangeShippingTracking: exchangeTracking })
       });
