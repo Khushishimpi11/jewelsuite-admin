@@ -607,16 +607,18 @@ export default function PaymentsPage() {
                 <div className="flex justify-between items-center mb-3">
                   <p className="text-sm text-muted-foreground">Payment ID</p>
                   <div className="flex items-center gap-1">
-                    <code className="text-xs font-mono">{selectedPaymentDetails.id}</code>
-                    <button onClick={() => copyToClipboard(selectedPaymentDetails.id, 'zoho-pid-detail')}>
-                      {copiedId === 'zoho-pid-detail' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                    </button>
+                    <code className="text-xs font-mono">{selectedPaymentDetails.id || selectedPaymentDetails.payment_id || "N/A"}</code>
+                    {(selectedPaymentDetails.id || selectedPaymentDetails.payment_id) && (
+                      <button onClick={() => copyToClipboard(selectedPaymentDetails.id || selectedPaymentDetails.payment_id, 'zoho-pid-detail')}>
+                        {copiedId === 'zoho-pid-detail' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-2xl font-bold">₹{selectedPaymentDetails.amount.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">{selectedPaymentDetails.currency}</p>
+                    <p className="text-2xl font-bold">₹{Number(selectedPaymentDetails.amount || 0).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">{selectedPaymentDetails.currency || "INR"}</p>
                   </div>
                   <PaymentStatusBadge status={selectedPaymentDetails.status} />
                 </div>
@@ -625,23 +627,23 @@ export default function PaymentsPage() {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-xs text-muted-foreground">Payment Method</p>
-                  <p className="font-medium capitalize">{selectedPaymentDetails.method?.toLowerCase() || "N/A"}</p>
+                  <p className="font-medium capitalize">{selectedPaymentDetails.method?.toLowerCase() || "Online"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Order ID</p>
-                  <p className="font-mono text-xs">{selectedPaymentDetails.orderId}</p>
+                  <p className="font-mono text-xs">{selectedPaymentDetails.orderId || selectedPaymentDetails.orderNumber || selectedPaymentDetails.order_number || selectedPaymentDetails.order_id || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Customer Email</p>
-                  <p className="text-sm">{selectedPaymentDetails.email || "N/A"}</p>
+                  <p className="text-sm">{selectedPaymentDetails.email || selectedPaymentDetails.customer_email || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Customer Contact</p>
-                  <p className="text-sm">{selectedPaymentDetails.contact || "N/A"}</p>
+                  <p className="text-sm">{selectedPaymentDetails.contact || selectedPaymentDetails.customer_phone || "N/A"}</p>
                 </div>
                 <div className="col-span-2">
                   <p className="text-xs text-muted-foreground">Date & Time</p>
-                  <p className="text-sm">{new Date(selectedPaymentDetails.createdAt).toLocaleString()}</p>
+                  <p className="text-sm">{(selectedPaymentDetails.created_at || selectedPaymentDetails.createdAt) ? new Date(selectedPaymentDetails.created_at || selectedPaymentDetails.createdAt).toLocaleString('en-IN') : "N/A"}</p>
                 </div>
               </div>
 

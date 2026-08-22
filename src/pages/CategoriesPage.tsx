@@ -43,6 +43,12 @@ interface Category {
   description: string;
   image: string;
   icon: string;
+  bannerImage?: string;
+  bannerTitle?: string;
+  bannerSubtitle?: string;
+  bannerButtonText?: string;
+  bannerButtonLink?: string;
+  showInBanner?: boolean;
   parentCategory: string | null;
   level: number;
   isActive: boolean;
@@ -67,6 +73,17 @@ export default function CategoriesPage() {
   const [image, setImage] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Category Banner Section states (different from category thumbnail)
+  const [bannerImage, setBannerImage] = useState("");
+  const [bannerImagePreview, setBannerImagePreview] = useState<string | null>(null);
+  const [uploadingBannerImage, setUploadingBannerImage] = useState(false);
+  const [bannerTitle, setBannerTitle] = useState("");
+  const [bannerSubtitle, setBannerSubtitle] = useState("");
+  const [bannerButtonText, setBannerButtonText] = useState("");
+  const [bannerButtonLink, setBannerButtonLink] = useState("");
+  const [showInBanner, setShowInBanner] = useState(true);
+
   const [parentCategory, setParentCategory] = useState<string>("none");
   const [featured, setFeatured] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -93,7 +110,7 @@ export default function CategoriesPage() {
       if (data.secure_url) {
         setImage(data.secure_url);
         setImagePreview(data.secure_url);
-        toast({ title: "Image Uploaded ✅", description: "Category image uploaded to Cloudinary successfully!" });
+        toast({ title: "Image Uploaded ✅", description: "Category thumbnail uploaded to Cloudinary successfully!" });
       } else {
         throw new Error(data.error?.message || "Upload failed");
       }
@@ -102,6 +119,40 @@ export default function CategoriesPage() {
       toast({ title: "Upload Failed ❌", description: err.message, variant: "destructive" });
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  const handleBannerImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    setUploadingBannerImage(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", "review_upload");
+      formData.append("folder", "category_banners");
+
+      const res = await fetch("https://api.cloudinary.com/v1_1/dkawppfwu/image/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.secure_url) {
+        setBannerImage(data.secure_url);
+        setBannerImagePreview(data.secure_url);
+        toast({ title: "Banner Image Uploaded ✅", description: "Category banner image uploaded to Cloudinary successfully!" });
+      } else {
+        throw new Error(data.error?.message || "Upload failed");
+      }
+    } catch (err: any) {
+      console.error("Cloudinary banner upload error:", err);
+      toast({ title: "Upload Failed ❌", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingBannerImage(false);
     }
   };
 
@@ -377,6 +428,11 @@ export default function CategoriesPage() {
                   </span>
                   <span>Slug: {category.slug}</span>
                   <span>Parent: {getParentCategoryName(category.parentCategory)}</span>
+                  {category.bannerImage && (
+                    <span className="inline-flex items-center gap-1 text-[11px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
+                      🖼️ Banner Configured
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -425,6 +481,12 @@ export default function CategoriesPage() {
         name: name.trim().toLowerCase(),
         description: description || undefined,
         image: image || undefined,
+        bannerImage: bannerImage || undefined,
+        bannerTitle: bannerTitle || undefined,
+        bannerSubtitle: bannerSubtitle || undefined,
+        bannerButtonText: bannerButtonText || undefined,
+        bannerButtonLink: bannerButtonLink || undefined,
+        showInBanner: showInBanner,
         parentCategory: parentValue,
         featured: featured,
       };
@@ -453,6 +515,13 @@ export default function CategoriesPage() {
     setDescription(category.description || "");
     setImage(category.image || "");
     setImagePreview(category.image || null);
+    setBannerImage(category.bannerImage || "");
+    setBannerImagePreview(category.bannerImage || null);
+    setBannerTitle(category.bannerTitle || "");
+    setBannerSubtitle(category.bannerSubtitle || "");
+    setBannerButtonText(category.bannerButtonText || "");
+    setBannerButtonLink(category.bannerButtonLink || "");
+    setShowInBanner(category.showInBanner !== undefined ? category.showInBanner : true);
     setParentCategory(category.parentCategory || "none");
     setFeatured(category.featured);
     setOpen(true);
@@ -495,6 +564,13 @@ export default function CategoriesPage() {
     setDescription("");
     setImage("");
     setImagePreview(null);
+    setBannerImage("");
+    setBannerImagePreview(null);
+    setBannerTitle("");
+    setBannerSubtitle("");
+    setBannerButtonText("");
+    setBannerButtonLink("");
+    setShowInBanner(true);
     setParentCategory("none");
     setFeatured(false);
   };
@@ -534,7 +610,6 @@ export default function CategoriesPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      {/* Header with 3 buttons */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-display font-bold">Category Management</h1>
@@ -547,78 +622,78 @@ export default function CategoriesPage() {
           {/* Refresh Button */}
           <Button
             variant="outline"
-            size="default"
             onClick={handleRefresh}
             disabled={refreshing}
-            className="gap-2 rounded-xl"
+            className="rounded-xl flex items-center gap-2"
           >
-            {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
 
           {/* Delete All Button */}
           <Button
-            variant="destructive"
-            size="default"
+            variant="outline"
             onClick={() => setDeleteAllDialogOpen(true)}
-            disabled={categories.length === 0 || deletingAll}
-            className="gap-2 rounded-xl"
+            className="rounded-xl flex items-center gap-2 text-destructive hover:bg-destructive/10 border-destructive/30"
           >
-            {deletingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <TrashIcon className="h-4 w-4" />}
+            <TrashIcon className="w-4 h-4" />
             Delete All
           </Button>
 
-          {/* Add Category Button */}
-          <Dialog open={open} onOpenChange={(v) => {
-            setOpen(v);
-            if (!v) resetForm();
+          {/* Add Category Dialog */}
+          <Dialog open={open} onOpenChange={(isOpen) => {
+            setOpen(isOpen);
+            if (!isOpen) resetForm();
           }}>
             <DialogTrigger asChild>
-              <Button className="gap-2 rounded-xl">
-                <Plus className="h-4 w-4" />
+              <Button className="rounded-xl flex items-center gap-2">
+                <Plus className="w-4 h-4" />
                 Add Category
               </Button>
             </DialogTrigger>
-            <DialogContent className="rounded-2xl max-w-md">
+            <DialogContent className="rounded-2xl max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="font-display text-xl">
                   {editingId ? "Edit" : "Add"} Category
                 </DialogTitle>
                 <DialogDescription>
-                  {editingId ? "Update the category details below." : "Create a new product category to organize your inventory."}
+                  {editingId ? "Update the category and banner details below." : "Create a new product category and configure its banner."}
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Category Name *</Label>
-                  <Input
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    placeholder="e.g., Rings, Necklaces, Earrings"
-                    className="rounded-xl"
-                  />
+              <div className="space-y-5 py-3">
+                {/* Basic Details Section */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="font-semibold">Category Name *</Label>
+                    <Input
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      placeholder="e.g., Rings, Necklaces, Earrings"
+                      className="rounded-xl"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="font-semibold">Parent Category (Optional)</Label>
+                    <Select value={parentCategory} onValueChange={setParentCategory}>
+                      <SelectTrigger className="rounded-xl">
+                        <SelectValue placeholder="Select parent category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None (Main Category)</SelectItem>
+                        {categories.filter(c => !c.parentCategory && c._id !== editingId).map(cat => (
+                          <SelectItem key={cat._id} value={cat._id}>
+                            {cat.name.charAt(0).toUpperCase() + cat.name.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Parent Category (Optional)</Label>
-                  <Select value={parentCategory} onValueChange={setParentCategory}>
-                    <SelectTrigger className="rounded-xl">
-                      <SelectValue placeholder="Select parent category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None (Main Category)</SelectItem>
-                      {categories.filter(c => !c.parentCategory && c._id !== editingId).map(cat => (
-                        <SelectItem key={cat._id} value={cat._id}>
-                          {cat.name.charAt(0).toUpperCase() + cat.name.slice(1)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Description (Optional)</Label>
+                  <Label className="font-semibold">Description (Optional)</Label>
                   <Input
                     value={description}
                     onChange={e => setDescription(e.target.value)}
@@ -627,13 +702,20 @@ export default function CategoriesPage() {
                   />
                 </div>
 
-                {/* Category Image Upload */}
-                <div className="space-y-2">
-                  <Label>Category Image</Label>
+                {/* 1. Category Thumbnail / Header Menu Icon Upload */}
+                <div className="p-4 rounded-xl bg-muted/30 border border-border/60 space-y-3">
+                  <div>
+                    <Label className="font-semibold text-foreground flex items-center gap-1.5 text-sm">
+                      📁 1. Category Thumbnail / Header Menu Image
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      📌 <strong>Where it appears:</strong> Header Navigation Dropdown, Mobile menu, and category list icons.
+                    </p>
+                  </div>
 
                   {(imagePreview || image) && (
-                    <div className="relative w-28 h-28 rounded-xl overflow-hidden border-2 border-primary/30 group bg-gray-50 mb-2">
-                      <img src={imagePreview || image} alt="Category Preview" className="w-full h-full object-cover" />
+                    <div className="relative w-24 h-24 rounded-xl overflow-hidden border-2 border-primary/30 group bg-gray-50">
+                      <img src={imagePreview || image} alt="Category Thumbnail" className="w-full h-full object-cover" />
                       <button
                         type="button"
                         onClick={() => {
@@ -641,7 +723,7 @@ export default function CategoriesPage() {
                           setImagePreview(null);
                         }}
                         className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 shadow-md hover:bg-red-700 transition-colors"
-                        title="Remove Image"
+                        title="Remove Thumbnail Image"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -654,7 +736,7 @@ export default function CategoriesPage() {
                       accept="image/*"
                       onChange={handleImageFileChange}
                       disabled={uploadingImage}
-                      className="rounded-xl cursor-pointer text-xs"
+                      className="rounded-xl cursor-pointer text-xs bg-background"
                     />
                     {uploadingImage && <Loader2 className="w-5 h-5 animate-spin text-primary shrink-0" />}
                   </div>
@@ -666,12 +748,111 @@ export default function CategoriesPage() {
                       setImage(e.target.value);
                       setImagePreview(e.target.value);
                     }}
-                    placeholder="Or paste Cloudinary image URL..."
-                    className="rounded-xl text-xs mt-1"
+                    placeholder="Or paste Cloudinary thumbnail URL..."
+                    className="rounded-xl text-xs bg-background"
                   />
                 </div>
 
-                <div className="flex items-center gap-2">
+                {/* ======================================================== */}
+                {/* 🎨 2. CATEGORY BANNER SECTION (SHOP BY CATEGORY BANNER)   */}
+                {/* ======================================================== */}
+                <div className="p-4 rounded-xl bg-gradient-to-br from-primary/5 via-amber-500/5 to-transparent border-2 border-primary/20 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="font-bold text-base text-primary flex items-center gap-2">
+                        🖼️ 2. Shop By Category Banner (Homepage & Shop Hero)
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        📌 <strong>Where it appears:</strong> Homepage "Shop by Category" Carousel Cards & Shop Page Top Hero Banner.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Banner Image Upload */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold">Banner Image (Wide Format)</Label>
+                    {(bannerImagePreview || bannerImage) && (
+                      <div className="relative w-full h-32 rounded-xl overflow-hidden border-2 border-primary/40 group bg-gray-900">
+                        <img src={bannerImagePreview || bannerImage} alt="Banner Preview" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/30 pointer-events-none" />
+                        <div className="absolute bottom-2 left-3 text-white text-xs font-bold drop-shadow">
+                          {bannerTitle || name.toUpperCase() || "Banner Preview"}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBannerImage("");
+                            setBannerImagePreview(null);
+                          }}
+                          className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1.5 shadow-md hover:bg-red-700 transition-colors"
+                          title="Remove Banner Image"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBannerImageFileChange}
+                        disabled={uploadingBannerImage}
+                        className="rounded-xl cursor-pointer text-xs bg-background"
+                      />
+                      {uploadingBannerImage && <Loader2 className="w-5 h-5 animate-spin text-primary shrink-0" />}
+                    </div>
+
+                    <Input
+                      type="url"
+                      value={bannerImage}
+                      onChange={e => {
+                        setBannerImage(e.target.value);
+                        setBannerImagePreview(e.target.value);
+                      }}
+                      placeholder="Or paste Cloudinary banner image URL..."
+                      className="rounded-xl text-xs bg-background"
+                    />
+                  </div>
+
+                  {/* Banner Text & Button Inputs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">Banner Heading / Title</Label>
+                      <Input
+                        value={bannerTitle}
+                        onChange={e => setBannerTitle(e.target.value)}
+                        placeholder={`e.g., ${name ? name.toUpperCase() : 'EXQUISITE RINGS'}`}
+                        className="rounded-xl text-xs bg-background"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">Banner Button Text</Label>
+                      <Input
+                        value={bannerButtonText}
+                        onChange={e => setBannerButtonText(e.target.value)}
+                        placeholder={`e.g., Shop ${name ? name.charAt(0).toUpperCase() + name.slice(1) : 'Collection'}`}
+                        className="rounded-xl text-xs bg-background"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      type="checkbox"
+                      id="showInBanner"
+                      checked={showInBanner}
+                      onChange={(e) => setShowInBanner(e.target.checked)}
+                      className="rounded border-border"
+                    />
+                    <Label htmlFor="showInBanner" className="cursor-pointer text-xs font-medium">
+                      Show in Website Homepage Category Banner Carousel
+                    </Label>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
                   <input
                     type="checkbox"
                     id="featured"
@@ -679,7 +860,7 @@ export default function CategoriesPage() {
                     onChange={(e) => setFeatured(e.target.checked)}
                     className="rounded border-border"
                   />
-                  <Label htmlFor="featured" className="cursor-pointer">
+                  <Label htmlFor="featured" className="cursor-pointer text-sm">
                     Featured Category (show on homepage)
                   </Label>
                 </div>

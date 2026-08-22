@@ -2,10 +2,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Search, Eye, Trash2, Edit, Users, IndianRupee, ShoppingCart, UserCheck, Mail, Phone, MapPin, Loader2, AlertTriangle, X, UserPlus, Copy, Check, Package, Trash, Calendar, CreditCard, Home, ShoppingBag, Clock, ChevronRight, Award, Star, Heart } from "lucide-react";
+import { Search, Eye, Trash2, Edit, Users, IndianRupee, ShoppingCart, UserCheck, Mail, Phone, MapPin, Loader2, AlertTriangle, X, UserPlus, Copy, Check, Package, Trash, Calendar, CreditCard, Home, ShoppingBag, Clock, ChevronRight, Award, Star, Heart, Truck } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { calculateEstimatedDelivery } from "@/utils/deliveryCalculator";
 import { useJewelleryCMS } from "@/context/JewelleryCMSContext";
 import type { Customer, Order } from "@/context/JewelleryCMSContext";
 
@@ -798,6 +799,10 @@ export default function CustomersPage() {
                                       <span className="flex items-center gap-1">
                                         <Package className="w-3 h-3" />
                                         {order.items?.length || 0} items
+                                      </span>
+                                      <span className="flex items-center gap-1 text-emerald-600 font-medium">
+                                        <Truck className="w-3 h-3" />
+                                        Est: {calculateEstimatedDelivery(order.createdAt || order.date)}
                                       </span>
                                     </div>
                                   </div>

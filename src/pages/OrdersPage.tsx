@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
+import { calculateEstimatedDelivery } from "@/utils/deliveryCalculator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,15 +42,16 @@ declare global {
   }
 }
 
-type StatusFilter = "All" | "Confirmed" | "Processing" | "Shipped" | "Out for Delivery" | "Delivered" | "Cancelled" | "Returned" | "Return Requested" | "Return Under Review" | "Return Approved" | "Return Rejected" | "Return Completed" | "Exchange Requested" | "Exchange Under Review" | "Exchange Approved" | "Exchange Rejected" | "Exchange Completed" | "Cancel Rejected";
+type StatusFilter = "All" | "Pending Payment" | "Confirmed" | "Processing" | "Shipped" | "Out for Delivery" | "Delivered" | "Cancelled" | "Returned" | "Return Requested" | "Return Under Review" | "Return Approved" | "Return Rejected" | "Return Completed" | "Exchange Requested" | "Exchange Under Review" | "Exchange Approved" | "Exchange Rejected" | "Exchange Completed" | "Cancel Rejected";
 
 const statusList = [
-  "Confirmed", "Processing", "Shipped", "Out for Delivery", "Delivered",
+  "Pending Payment", "Confirmed", "Processing", "Shipped", "Out for Delivery", "Delivered",
   "Cancelled", "Returned", "Return Requested", "Return Under Review", "Return Approved", "Return Rejected", "Return Completed",
   "Exchange Requested", "Exchange Under Review", "Exchange Approved", "Exchange Rejected", "Exchange Completed"
 ];
 
 const statusConfig: Record<string, { icon: any; bg: string; text: string; border: string }> = {
+  "Pending Payment": { icon: Clock, bg: "bg-amber-500/10", text: "text-amber-600", border: "border-amber-500/30" },
   Confirmed: { icon: CheckCircle2, bg: "bg-emerald-500/10", text: "text-emerald-500", border: "border-emerald-500/30" },
   Processing: { icon: Package, bg: "bg-amber-500/10", text: "text-amber-500", border: "border-amber-500/30" },
   Shipped: { icon: Truck, bg: "bg-blue-500/10", text: "text-blue-500", border: "border-blue-500/30" },
@@ -555,7 +557,7 @@ export default function OrdersPage() {
           return subtotal + tax + 1200;
         })(),
         status: o.orderStatus || o.status || "Confirmed",
-        paymentStatus: o.paymentStatus || "SUCCESS",
+        paymentStatus: o.paymentStatus || "PENDING",
         paymentMethod: o.paymentMethod || "ONLINE",
         paymentId: o.paymentId || null,
         date: new Date(o.createdAt).toLocaleDateString(),
@@ -564,7 +566,7 @@ export default function OrdersPage() {
         trackingId: o.trackingNumber,
         notes: o.notes,
         createdAt: o.createdAt,
-        estimatedDelivery: o.estimatedDelivery,
+        estimatedDelivery: calculateEstimatedDelivery(o.createdAt),
         returnTrackingNumber: o.returnTrackingNumber,
         exchangeTrackingNumber: o.exchangeTrackingNumber,
       }));
@@ -1249,7 +1251,7 @@ export default function OrdersPage() {
           {selectedOrder && (
             <div className="space-y-6">
               <div className="bg-primary/5 rounded-lg p-4">
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Order ID</p>
                     <p className="font-mono font-semibold">{selectedOrder.orderNumber}</p>
@@ -1257,6 +1259,10 @@ export default function OrdersPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Order Date</p>
                     <p className="font-medium">{formatFullDateTime(selectedOrder.createdAt)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Est. Delivery (12–15 days)</p>
+                    <p className="font-medium text-emerald-600">{calculateEstimatedDelivery(selectedOrder.createdAt)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Products</p>
@@ -1277,7 +1283,7 @@ export default function OrdersPage() {
                     <div>
                       <p className="text-sm text-muted-foreground">Payment ID</p>
                       <div className="flex items-center gap-1">
-                        <p className="font-mono text-sm">{selectedOrder.paymentId.slice(-12)}</p>
+                        <p className="font-mono text-sm">{selectedOrder.paymentId}</p>
                         <button onClick={() => copyToClipboard(selectedOrder.paymentId!, `payment-id`)}>
                           {copiedId === `payment-id` ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                         </button>
@@ -1414,7 +1420,7 @@ export default function OrdersPage() {
                             </div>
 
                             <p className="text-sm mt-2">
-                              Qty: {item.quantity} × ₹{item.price?.toLocaleString()} = ₹{(item.price * item.quantity).toLocaleString()} <span className="text-xs text-muted-foreground">(+ {item.gstPercent || 3}% GST extra)</span>
+                              Qty: {item.quantity} × ₹{item.price?.toLocaleString()} = ₹{(item.price * item.quantity).toLocaleString()} <span className="text-xs text-muted-foreground">({item.gstPercent || 3}% GST Extra)</span>
                             </p>
                           </div>
                         </div>
@@ -1501,11 +1507,11 @@ export default function OrdersPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-xs text-muted-foreground">Payment ID</p>
-                  <p className="font-mono text-sm">{selectedPaymentDetails.id}</p>
+                  <p className="font-mono text-sm">{selectedPaymentDetails.id || selectedPaymentDetails.payment_id || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Order ID</p>
-                  <p className="font-mono text-sm">{selectedPaymentDetails.orderId}</p>
+                  <p className="font-mono text-sm">{selectedPaymentDetails.orderId || selectedPaymentDetails.orderNumber || selectedPaymentDetails.order_number || selectedPaymentDetails.order_id || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Amount</p>
