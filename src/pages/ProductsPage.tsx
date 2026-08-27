@@ -14,7 +14,8 @@ import {
   AlertTriangle, XCircle, Weight, Sparkles, HeartHandshake,
   BadgeCheck, GemIcon, Medal, ClipboardList, Layers, RefreshCw, FolderTree,
   DollarSign, Scale, Calendar, Hash, User, Gift, Home, ShieldCheck, RotateCcw, CreditCard,
-  CheckCircle2, CalendarDays, MapPin, Phone, Mail, Copy, Check, Loader2, Video, Bell
+  CheckCircle2, CalendarDays, MapPin, Phone, Mail, Copy, Check, Loader2, Video, Bell,
+  GripVertical, ArrowUpDown, MoveUp, MoveDown, ListOrdered
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -143,6 +144,7 @@ interface Product {
   };
   createdAt?: string;
   updatedAt?: string;
+  sortOrder?: number;
 }
 
 // Default care instructions
@@ -2790,6 +2792,14 @@ export default function ProductsPage() {
   const [isInitialFetch, setIsInitialFetch] = useState(true);
   const [dbTotalCount, setDbTotalCount] = useState<number | null>(null);
 
+  // ===== REORDER STATE =====
+  const [reorderOpen, setReorderOpen] = useState(false);
+  const [reorderCategory, setReorderCategory] = useState("Pendants");
+  const [reorderItems, setReorderItems] = useState<Product[]>([]);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
   const fetchRef = useRef(false);
 
   const fetchCategories = async () => {
@@ -3512,6 +3522,86 @@ export default function ProductsPage() {
     return name.includes(searchText) || sku.includes(searchText) || category.includes(searchText);
   });
 
+  // ===== REORDER HELPERS =====
+  const REORDERABLE_CATEGORIES = ["Pendants", "Rings", "Earrings", "Bracelets", "Necklaces", "Sets", "Chains"];
+  const PRODUCTS_PER_PAGE_FRONTEND = 9;
+
+  const openReorder = (cat: string) => {
+    const categoryProducts = products
+      .filter(p => {
+        const pCat = typeof p.category === "string" ? p.category : (p.category as any)?.name || "";
+        return pCat.toLowerCase() === cat.toLowerCase();
+      })
+      .sort((a, b) => {
+        const orderA = typeof a.sortOrder === 'number' ? a.sortOrder : 999999;
+        const orderB = typeof b.sortOrder === 'number' ? b.sortOrder : 999999;
+        return orderA - orderB;
+      });
+    setReorderItems(categoryProducts);
+    setReorderCategory(cat);
+    setReorderOpen(true);
+  };
+
+  const handleReorderDragStart = (index: number) => { setDragIndex(index); };
+
+  const handleReorderDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+
+  const handleReorderDrop = (targetIndex: number) => {
+    if (dragIndex === null || dragIndex === targetIndex) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    const updated = [...reorderItems];
+    const [moved] = updated.splice(dragIndex, 1);
+    updated.splice(targetIndex, 0, moved);
+    setReorderItems(updated);
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const moveReorderItem = (index: number, direction: 'up' | 'down') => {
+    const updated = [...reorderItems];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= updated.length) return;
+    [updated[index], updated[targetIndex]] = [updated[targetIndex], updated[index]];
+    setReorderItems(updated);
+  };
+
+  const saveReorder = async () => {
+    setSavingOrder(true);
+    try {
+      const items = reorderItems.map((p, i) => ({
+        id: p._id || p.id,
+        sortOrder: i + 1
+      }));
+      const res = await fetch(`${API_BASE_URL}/products/reorder`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items })
+      });
+      if (!res.ok) throw new Error("Failed to save order");
+      const updatedMap: Record<string, number> = {};
+      items.forEach(item => { if (item.id) updatedMap[item.id] = item.sortOrder; });
+      setProducts(prev => prev.map(p => {
+        const id = p._id || p.id;
+        if (id && updatedMap[id] !== undefined) return { ...p, sortOrder: updatedMap[id] };
+        return p;
+      }));
+      toast({ title: "✅ Order Saved!", description: `${reorderCategory} products reordered. Website pagination will now follow this order.` });
+      setReorderOpen(false);
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to save order. Please try again.", variant: "destructive" });
+    } finally {
+      setSavingOrder(false);
+    }
+  };
+
+  const isNewPage = (index: number) => index > 0 && index % PRODUCTS_PER_PAGE_FRONTEND === 0;
+
   // Use DB count if available (true total), otherwise fall back to fetched array length
   const totalProducts = dbTotalCount !== null ? dbTotalCount : products.length;
   const totalValue = products.reduce((sum, p) => sum + (p.price || 0), 0);
@@ -3702,6 +3792,184 @@ export default function ProductsPage() {
             Refresh
           </Button>
 
+          {/* Reorder Products Dialog */}
+          <Dialog open={reorderOpen} onOpenChange={setReorderOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1 rounded-xl border-amber-500/40 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                onClick={() => openReorder(reorderCategory)}
+              >
+                <ListOrdered className="h-3.5 w-3.5" />
+                Reorder Products
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl rounded-2xl max-h-[90vh] flex flex-col">
+              <DialogHeader className="pb-3 border-b flex-shrink-0">
+                <DialogTitle className="font-display text-xl flex items-center gap-2">
+                  <ArrowUpDown className="h-5 w-5 text-amber-500" />
+                  Reorder Products
+                </DialogTitle>
+                <DialogDescription>
+                  Drag & drop or use arrows to reorder. Lower position = appears first on the website.
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Category Selector */}
+              <div className="flex items-center gap-3 py-3 border-b flex-shrink-0">
+                <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Category:</span>
+                <div className="flex gap-1.5 flex-wrap">
+                  {REORDERABLE_CATEGORIES.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => openReorder(cat)}
+                      className={`px-3 py-1 text-xs rounded-full font-semibold border transition-all ${
+                        reorderCategory === cat
+                          ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
+                          : 'border-border text-muted-foreground hover:border-amber-400 hover:text-amber-600'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Stats bar */}
+              <div className="flex items-center gap-4 py-2 text-xs text-muted-foreground flex-shrink-0">
+                <span className="font-semibold text-foreground">{reorderItems.length} {reorderCategory} products</span>
+                <span>•</span>
+                <span>{Math.ceil(reorderItems.length / PRODUCTS_PER_PAGE_FRONTEND)} pages ({PRODUCTS_PER_PAGE_FRONTEND} per page)</span>
+              </div>
+
+              {/* Reorder List */}
+              <div className="flex-1 overflow-y-auto space-y-1 min-h-0 pr-1">
+                {reorderItems.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+                    <Package className="h-8 w-8 mb-2 opacity-30" />
+                    <p className="text-sm">No {reorderCategory} products found</p>
+                  </div>
+                ) : (
+                  reorderItems.map((product, index) => {
+                    const imageUrl = product.mainImage?.url || product.images?.[0] || '';
+                    const isDragging = dragIndex === index;
+                    const isDragOver = dragOverIndex === index && dragIndex !== index;
+                    const pageNum = Math.floor(index / PRODUCTS_PER_PAGE_FRONTEND) + 1;
+
+                    return (
+                      <React.Fragment key={product._id || product.id}>
+                        {/* Page divider */}
+                        {isNewPage(index) && (
+                          <div className="flex items-center gap-2 my-2">
+                            <div className="flex-1 h-px bg-amber-200" />
+                            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                              PAGE {pageNum} STARTS HERE
+                            </span>
+                            <div className="flex-1 h-px bg-amber-200" />
+                          </div>
+                        )}
+
+                        <div
+                          draggable
+                          onDragStart={() => handleReorderDragStart(index)}
+                          onDragOver={(e) => handleReorderDragOver(e, index)}
+                          onDrop={() => handleReorderDrop(index)}
+                          onDragEnd={() => { setDragIndex(null); setDragOverIndex(null); }}
+                          className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-grab active:cursor-grabbing select-none ${
+                            isDragging
+                              ? 'opacity-40 scale-95 border-amber-400 bg-amber-50'
+                              : isDragOver
+                              ? 'border-amber-400 bg-amber-50 shadow-md scale-[1.01]'
+                              : 'border-border/50 bg-card hover:border-amber-300 hover:bg-amber-50/40'
+                          }`}
+                        >
+                          <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+
+                          <div className="w-7 h-7 rounded-lg bg-amber-100 border border-amber-200 flex items-center justify-center flex-shrink-0">
+                            <span className="text-[10px] font-bold text-amber-700">{index + 1}</span>
+                          </div>
+
+                          <div className="h-10 w-10 rounded-lg overflow-hidden bg-secondary flex-shrink-0">
+                            {imageUrl ? (
+                              <img src={imageUrl} alt={product.name} className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="h-full w-full flex items-center justify-center"><Gem className="h-4 w-4 text-muted-foreground" /></div>
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-foreground truncate">{product.name}</p>
+                            <p className="text-[11px] text-muted-foreground">{product.sku} • Pg {pageNum}</p>
+                          </div>
+
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border flex-shrink-0 ${
+                            product.status === 'Published' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                            product.status === 'Draft' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                            'bg-gray-50 text-gray-500 border-gray-200'
+                          }`}>{product.status}</span>
+
+                          <div className="flex gap-1 flex-shrink-0">
+                            <button
+                              onClick={() => moveReorderItem(index, 'up')}
+                              disabled={index === 0}
+                              className="h-7 w-7 rounded-lg border border-border/50 flex items-center justify-center text-muted-foreground hover:border-amber-400 hover:text-amber-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                              title="Move Up"
+                            >
+                              <MoveUp className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => moveReorderItem(index, 'down')}
+                              disabled={index === reorderItems.length - 1}
+                              className="h-7 w-7 rounded-lg border border-border/50 flex items-center justify-center text-muted-foreground hover:border-amber-400 hover:text-amber-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                              title="Move Down"
+                            >
+                              <MoveDown className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+
+                          <input
+                            type="number"
+                            min={1}
+                            max={reorderItems.length}
+                            value={index + 1}
+                            onChange={(e) => {
+                              const newPos = Math.max(1, Math.min(reorderItems.length, parseInt(e.target.value) || 1)) - 1;
+                              const updated = [...reorderItems];
+                              const [item] = updated.splice(index, 1);
+                              updated.splice(newPos, 0, item);
+                              setReorderItems(updated);
+                            }}
+                            className="w-14 h-7 text-center text-xs border border-border/50 rounded-lg bg-background focus:border-amber-400 focus:outline-none"
+                            title="Set position directly"
+                          />
+                        </div>
+                      </React.Fragment>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between pt-3 border-t flex-shrink-0 gap-3">
+                <p className="text-xs text-muted-foreground flex-1">
+                  💡 Drag items or type a position number. Page boundaries update live.
+                </p>
+                <Button variant="outline" onClick={() => setReorderOpen(false)} className="rounded-xl" disabled={savingOrder}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={saveReorder}
+                  disabled={savingOrder || reorderItems.length === 0}
+                  className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white gap-2"
+                >
+                  {savingOrder ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  {savingOrder ? 'Saving...' : 'Save Order'}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="gap-1 rounded-xl">
@@ -3839,7 +4107,17 @@ export default function ProductsPage() {
                     </div>
 
                     <div>
-                      <p className="font-bold text-foreground text-lg">{product.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-foreground text-lg">{product.name}</p>
+                        {typeof product.sortOrder === 'number' && product.sortOrder !== 999999 && (
+                          <span
+                            className="text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-md"
+                            title="Display Order"
+                          >
+                            #{product.sortOrder}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 text-sm mt-1 flex-wrap">
                         <span className="font-medium">{getCategoryDisplay(product)}</span>
                         {product.brand && (
